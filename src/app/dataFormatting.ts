@@ -1,4 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
+import type { CheckinChartData } from './components/Chart';
 export type Data = {
   headers: string[];
   rows: string[][];
@@ -32,7 +33,9 @@ function getWeekNumber(isoDate: string): number {
   return Temporal.Instant.from(isoDate+'Z').toZonedDateTimeISO('GMT+0').weekOfYear;
 }
 
-export const dataToHeatmapData = (data: Data) => {
+export function dataToHeatmapData(data: Data): {
+  [key: string]: CheckinChartData,
+} {
   const weekdayIndex = data.headers.indexOf('Day of Week');
   const timeIndex = data.headers.indexOf('time');
   const nameIndex = data.headers.indexOf('Name');
@@ -66,4 +69,11 @@ export const dataToHeatmapData = (data: Data) => {
     }
   })}), {});
   return heatMapData;
+}
+
+export function getLatestDate(data: Data): string {
+  const timeIndex = data.headers.indexOf('time');
+  const rows = data.rows;
+  rows.sort((a, b) => (new Date(a[timeIndex])).getTime() - (new Date(b[timeIndex])).getTime());
+  return rows[rows.length - 1][timeIndex]
 }

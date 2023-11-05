@@ -20,7 +20,7 @@ export async function CheckinChart({
     data: CheckinChartData;
     width: number;
     height: number;
-    fivePluses: string[];
+    fivePluses: Array<string | undefined>;
 }) {
   const columns = data.length;
   const rows = data[0].data.length;
