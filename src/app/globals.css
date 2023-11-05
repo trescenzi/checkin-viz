@@ -1,0 +1,17 @@
+* {
+  box-sizing: border-box;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+svg {
+  margin: 50px auto;
+  display: block;
+}
+
+form {
+  padding: 16px;
+}
