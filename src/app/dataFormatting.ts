@@ -50,6 +50,7 @@ export const dataToHeatmapData = (data: Data) => {
     ...groups,
     // @ts-ignore TODO
     [week]: Object.keys(weeksGroupedByName[week]).map(name => {
+      // @ts-ignore TODO
       const sortedCheckins = sortCheckinByWeekday(weeksGroupedByName[week][name], weekdayIndex);
     return {
       id: name,
