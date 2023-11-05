@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prod": "export NODE_ENV=production && nohup next start &"
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.4.4",

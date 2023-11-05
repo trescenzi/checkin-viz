@@ -11,7 +11,7 @@ export async function getData(
   dimension: "COLUMNS" | "ROWS"
 ): Promise<Data> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/database!A:E?majorDimension=${dimension}&key=${process.env.GOOGLE_API_KEY}`;
-  return fetch(url)
+  return fetch(url, {cache: 'no-store'})
     .then((res) => res.json() as Promise<GoogleSheetResponse<string>>)
     .then(gdata => ({
       headers: gdata.values[0],
