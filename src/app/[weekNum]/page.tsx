@@ -8,6 +8,9 @@ export default async function Page({params: {weekNum}}) {
   const d = await getData('ROWS');
   const heatmapData = dataToHeatmapData(d);
   const weeks = Object.keys(heatmapData).sort();
+  if (!weekNum) {
+    return <>something went wrong</>;
+  }
   // @ts-ignore TODO
   const week = heatmapData[weeks[weekNum]];
   // @ts-ignore TODO
