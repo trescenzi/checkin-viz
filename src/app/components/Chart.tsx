@@ -8,7 +8,7 @@ export type CheckinChartData = {
 }[];
 const wGap = 0;
 const hGap = 20;
-const gutter = 60;
+const gutter = 80;
 const colors = ["#f7f7f7","#cccccc","#969696","#636363","#252525"];
 const greens = ["#edf8e9","#c7e9c0","#a1d99b","#74c476","#41ab5d","#238b45","#005a32"];
 export async function CheckinChart({
