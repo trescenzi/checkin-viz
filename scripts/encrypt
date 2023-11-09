@@ -1,0 +1,3 @@
+#! /bin/bash
+
+cat age-keys.txt | xargs -I {} sops --encrypt --age {} .env > .env.sops
