@@ -1,40 +1,18 @@
-import { Temporal } from '@js-temporal/polyfill';
-import type { CheckinChartData } from './components/Chart';
-export type Data = {
-  headers: string[];
-  rows: string[][];
-}
+The following function converts data from a google sheet into data that a map with keys that represent the week of the year that the data is for. I'd like you to convert it to python code for me.
 
-export type CalendarData = {
-  from: string;
-  to: string;
+```typescript
+
+export type CheckinChartData = {
+  id: string,
   data: {
-    value: number,
-    day: string,
+    x: string;
+    y: number;
+    checkedIn: boolean;
   }[];
-}
-
-export const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-export const groupBy = (data: string[][], index: number, fn: (x: string) => string | number) => {
-  return data.reduce((acc, row) => {
-    const val = fn(row[index]);
-    (acc[val] || (acc[val] = [])).push(row)
-    return acc;
-  }, {} as {[key: string | number]: any});
-}
-
-function sortCheckinByWeekday(data: string[], weekdayIndex: number) {
-  return data.sort((a, b) => {
-    return weekdays.indexOf(a[weekdayIndex]) - weekdays.indexOf(b[weekdayIndex]);
-  });
-}
-
-function getWeekNumber(isoDate: string): number {
-  return Temporal.Instant.from(isoDate+'Z').toZonedDateTimeISO('GMT+0').weekOfYear;
-}
+}[];
 
 export function dataToHeatmapData(data: Data): {
-  [key: string]: CheckinChartData,
+  [weekOfYear: string]: CheckinChartData,
 } {
   const weekdayIndex = data.headers.indexOf('Day of Week');
   const timeIndex = data.headers.indexOf('time');
@@ -70,10 +48,4 @@ export function dataToHeatmapData(data: Data): {
   })}), {});
   return heatMapData;
 }
-
-export function getLatestDate(data: Data): string {
-  const timeIndex = data.headers.indexOf('time');
-  const rows = data.rows;
-  rows.sort((a, b) => (new Date(a[timeIndex])).getTime() - (new Date(b[timeIndex])).getTime());
-  return rows[rows.length - 1][timeIndex]
-}
+```

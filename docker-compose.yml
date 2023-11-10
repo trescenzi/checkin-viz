@@ -5,6 +5,6 @@ services:
       args:
         GOOGLE_API_KEY: $GOOGLE_API_KEY
     ports:
-      - "3000:3000"
+      - "3000:8000"
     environment:
       GOOGLE_API_KEY: $GOOGLE_API_KEY
