@@ -1,0 +1,37 @@
+* {
+  box-sizing: border-box;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+body {
+  padding: 16px;
+}
+svg {
+  margin: 50px auto;
+  display: block;
+}
+form {
+  display: inline-block;
+  margin-right: 16px;
+}
+form button, select {
+  margin-left: 16px;
+  border: 1px solid #636363;
+  padding: 8px;
+  background-color: white;
+  min-width: 100px;
+  border-radius: 4px;
+}
+form button:active,
+form select:active {
+  background-color: #dfdfdf;
+}
+@media(hover: hover) {
+  form button:hover,
+  form select:hover {
+    cursor: pointer;
+  }
+}

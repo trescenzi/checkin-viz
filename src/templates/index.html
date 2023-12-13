@@ -2,14 +2,25 @@
 <html>
   <head>
     <title>Oct 29th Checkins</title>
+    <link rel="stylesheet" href="/main.css" />
   </head>
   <body>
-    <h1>My Heading</h1>
-    <!-- Call the function here -->
+    <h1>Latest as of {{ latest }}</h1>
+    <form>
+      <select name="week" id="week">
+        {% for key in keys %}
+          <option
+            {{'selected' if key == week}}
+            value="{{key}}"
+            name="{{key}}"
+          >
+            week: {{key}}
+          </option>
+        {% endfor %}
+      </select>
+      <button>View Week</button>
+    </form>
     {{ svg | safe }}
-    <select>
-        <!-- dropdown options here -->
-    </select>
   </body>
 </html>
 

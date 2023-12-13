@@ -5,7 +5,7 @@ import itertools
 from datetime import datetime
 import json
 import svgwrite
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 key = os.environ.get("GOOGLE_API_KEY");
 id = "1k-tnKWWB3q6XCF2ofav-yT_CGprIFMBTf9OPhvR8hlM";
@@ -17,7 +17,7 @@ rows = data["values"][1:]
 
 
 def getWeekNumber(datestr):
-   return datetime.fromisoformat(datestr).strftime("%W")
+   return int(datetime.fromisoformat(datestr).strftime("%W"))
 
 def sortCheckinByWeekday(data: List[str], weekdayIndex: int) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x[weekdayIndex]))
@@ -35,10 +35,10 @@ class CheckinChartData(NamedTuple):
         return json.dumps({"id": self.id, "data": self.data})
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-def data_to_heatmap_data() -> Dict[str, List[CheckinChartData]]:
-    weekday_index = headers.index('Day of Week')
-    time_index = headers.index('time')
-    name_index = headers.index('Name')
+weekday_index = headers.index('Day of Week')
+time_index = headers.index('time')
+name_index = headers.index('Name')
+def data_to_heatmap_data() -> Dict[int, List[CheckinChartData]]:
     rows.sort(key=lambda x: getWeekNumber(x[time_index]))
 
     grouped_by_weeks = {week: list(value) for week, value in itertools.groupby(rows, key=lambda x: getWeekNumber(x[time_index]))}
@@ -51,7 +51,7 @@ def data_to_heatmap_data() -> Dict[str, List[CheckinChartData]]:
         for name in weeks_grouped_by_name: 
             sorted_checkins = sortCheckinByWeekday(weeks_grouped_by_name[name], weekday_index)
             data = []
-            for _, weekday in enumerate(weekdays):
+            for i, weekday in enumerate(weekdays):
                 checkinIndex = next((index for index, checkin in enumerate(sorted_checkins) if checkin[weekday_index] == weekday), -1)
                 data.append(DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1)))
             heat_map_data[week].append(CheckinChartData(name, data))
@@ -61,6 +61,7 @@ def data_to_heatmap_data() -> Dict[str, List[CheckinChartData]]:
 data = {"headers": headers, "rows": rows}
 
 heatmapData = data_to_heatmap_data();
+latest = sorted(rows, key=lambda x: x[time_index])[-1][time_index]
 
 def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pluses: List[str]):
     wGap = 0
@@ -103,13 +104,15 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
     return dwg.tostring()
 
 
-
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='',)
 @app.route("/")
 def index():
-    five_pluses = [week.id for _, week in enumerate(heatmapData["44"]) if week.data[-1].y >= 5]
-    chart = checkin_chart(heatmapData["44"], 800, 600, five_pluses);
-    return render_template('index.html', svg=chart)
+    weekNum = request.args.get('week') or max(heatmapData, key=int)
+    week = heatmapData[int(weekNum)]
+    print(heatmapData.keys())
+    five_pluses = [week.id for _, week in enumerate(week) if week.data[-1].y >= 5]
+    chart = checkin_chart(week, 800, 600, five_pluses);
+    return render_template('index.html', svg=chart, latest=latest, keys=heatmapData.keys(), week=int(weekNum))
 
 if __name__ == "__main__":
     app.run(debug=True)
