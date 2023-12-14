@@ -1,4 +1,5 @@
 __pycache__
+src/static/preview*
 # dependencies
 /node_modules
 /.pnp

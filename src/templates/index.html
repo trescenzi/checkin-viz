@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Oct 29th Checkins</title>
+    <title>Week {{week}} Checkins</title>
+    <meta property="og:title" content="Week {{week}}" />
+    <meta property="og:description" content="" />
+    <meta property="og:url" content="https://checkinviz.tcrez.dev/?week={{week}}" />
+    <meta
+      property="og:image"
+      content="{{ url_for('static', filename='preview-49.png') }}"
+    />
     <style>
       * {
         box-sizing: border-box;

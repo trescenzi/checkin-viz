@@ -1,6 +1,7 @@
 from typing import List, Dict, NamedTuple
 import requests
 import os
+import cairosvg
 import itertools
 from datetime import datetime
 import json
@@ -76,7 +77,7 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
     rectH = (height - columns * hGap - gutter) / columns
 
     dwg = svgwrite.Drawing('checkin.svg', size=(width + 1, height))
-
+    dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), fill='white'))
     for column, chart in enumerate(data):
         yLabel = chart.id
         text1 = dwg.text(yLabel, insert=(0, rectH * column + hGap * column + gutter + rectH / 2), font_size=14, font_weight="bold")
@@ -104,16 +105,23 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
     return dwg.tostring()
 
 
-app = Flask(__name__, static_url_path='',)
+def write_og_image(svg, weekNum):
+    output = './src/static/preview-{week}.png'.format(week=weekNum)
+    cairosvg.svg2png(bytestring=svg, write_to=output)
+
+
+app = Flask(__name__)
+
+
 @app.route("/")
 def index():
     weekNum = request.args.get('week') or max(heatmapData, key=int)
     week = heatmapData[int(weekNum)]
-    print(heatmapData.keys())
     five_pluses = [week.id for _, week in enumerate(week) if week.data[-1].y >= 5]
-    chart = checkin_chart(week, 800, 600, five_pluses);
+    chart = checkin_chart(week, 800, 600, five_pluses)
+    write_og_image(chart, weekNum)
     return render_template('index.html', svg=chart, latest=latest, keys=heatmapData.keys(), week=int(weekNum))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-
