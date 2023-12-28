@@ -68,7 +68,7 @@
     </form>
     {{ svg | safe }}
     <hr/>
-    <p>Latest as of {{ latest }}</p>
+    <p><b>Latest as of {{ latest.strftime("%m/%d/%Y %H:%M") }}</b></p>
   </body>
 </html>
 

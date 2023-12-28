@@ -3,66 +3,48 @@ import requests
 import os
 import cairosvg
 import itertools
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import svgwrite
 from flask import Flask, render_template, request
+import psycopg
 
-key = os.environ.get("GOOGLE_API_KEY");
-id = "1k-tnKWWB3q6XCF2ofav-yT_CGprIFMBTf9OPhvR8hlM";
-url = f"https://sheets.googleapis.com/v4/spreadsheets/{id}/values/database!A:E?majorDimension=ROWS&key={key}"
-response = requests.get(url)
-data = response.json()
-headers = data["values"][0]
-rows = data["values"][1:]
+def get_start_end_dates(year, week_num):
+    # Find the first day of the year
+    first_day = datetime(year, 1, 1)
 
+    # If the first day of the year is not Monday then find the first
+    if first_day.weekday() > 0:
+        first_day = first_day + timedelta(7 - first_day.weekday())
 
-def getWeekNumber(datestr):
-   return int(datetime.fromisoformat(datestr).strftime("%W"))
+    # Find the start and end date of the week
+    start_date = first_day + timedelta(days=(week_num - 1) * 7)
+    end_date = start_date + timedelta(days=7)
+
+    return start_date, end_date
+
+def getWeekNumber(date):
+    return int(date.strftime("%W"))
 
 def sortCheckinByWeekday(data: List[str], weekdayIndex: int) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x[weekdayIndex]))
+
 
 class DataUnit(NamedTuple):
     x: str
     y: int
     checkedIn: bool
 
+
 class CheckinChartData(NamedTuple):
-    id: str
+    name: str
     data: List[DataUnit]
 
     def tostring(self) -> str:
         return json.dumps({"id": self.id, "data": self.data})
 
+
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-weekday_index = headers.index('Day of Week')
-time_index = headers.index('time')
-name_index = headers.index('Name')
-def data_to_heatmap_data() -> Dict[int, List[CheckinChartData]]:
-    rows.sort(key=lambda x: getWeekNumber(x[time_index]))
-
-    grouped_by_weeks = {week: list(value) for week, value in itertools.groupby(rows, key=lambda x: getWeekNumber(x[time_index]))}
-    heat_map_data = {}
-    for week in grouped_by_weeks:
-        weeks_data = grouped_by_weeks[week]
-        weeks_data.sort(key=lambda x: x[name_index]) # sort on name
-        weeks_grouped_by_name = {name: list(value) for name, value in itertools.groupby(weeks_data, key=lambda x: x[name_index])}
-        heat_map_data[week] = []
-        for name in weeks_grouped_by_name: 
-            sorted_checkins = sortCheckinByWeekday(weeks_grouped_by_name[name], weekday_index)
-            data = []
-            for i, weekday in enumerate(weekdays):
-                checkinIndex = next((index for index, checkin in enumerate(sorted_checkins) if checkin[weekday_index] == weekday), -1)
-                data.append(DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1)))
-            heat_map_data[week].append(CheckinChartData(name, data))
-    return heat_map_data
-
-
-data = {"headers": headers, "rows": rows}
-
-heatmapData = data_to_heatmap_data();
-latest = sorted(rows, key=lambda x: x[time_index])[-1][time_index]
 
 def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pluses: List[str]):
     wGap = 0
@@ -79,7 +61,7 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
     dwg = svgwrite.Drawing('checkin.svg', size=(width + 1, height))
     dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), fill='white'))
     for column, chart in enumerate(data):
-        yLabel = chart.id
+        yLabel = chart.name
         text1 = dwg.text(yLabel, insert=(0, rectH * column + hGap * column + gutter + rectH / 2), font_size=14, font_weight="bold")
         dwg.add(text1)
         for row, dataUnit in enumerate(chart.data):
@@ -112,15 +94,47 @@ def write_og_image(svg, weekNum):
 
 app = Flask(__name__)
 
+connection_string = os.environ['DB_CONNECT_STRING']
+def week_heat_map_from_db(weekNum):
+    name_index = 0
+    time_index = 1
+    weekday_index = 3
+    heatmap_data = []
+    latest_date = None
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute("select time from checkins order by time desc limit 1")
+            latest_date = cur.fetchone()
+            start, end = get_start_end_dates(2023, weekNum)
+            print(start, end)
+            cur.execute("select name, time, tier, day_of_week, text from checkins where time >= %s and time < %s",
+                        (start, end))
+            rows = cur.fetchall()
+            rows.sort(key=lambda x: getWeekNumber(x[time_index]))
+            grouped_by_weeks = {week: list(value) for week, value in itertools.groupby(rows, key=lambda x: getWeekNumber(x[time_index]))}
+            rows.sort(key=lambda x: x[name_index]) # sort on name
+            weeks_grouped_by_name = {name: list(value) for name, value in itertools.groupby(rows, key=lambda x: x[name_index])}
+            for name in weeks_grouped_by_name: 
+                sorted_checkins = sortCheckinByWeekday(weeks_grouped_by_name[name], weekday_index)
+                data = []
+                for i, weekday in enumerate(weekdays):
+                    checkinIndex = next((index for index, checkin in enumerate(sorted_checkins) if checkin[weekday_index] == weekday), -1)
+                    data.append(DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1)))
+                heatmap_data.append(CheckinChartData(name, data))
+        conn.commit()
+    return heatmap_data, latest_date[0]
+
 
 @app.route("/")
 def index():
-    weekNum = request.args.get('week') or max(heatmapData, key=int)
-    week = heatmapData[int(weekNum)]
-    five_pluses = [week.id for _, week in enumerate(week) if week.data[-1].y >= 5]
+    currentWeekNum = int(datetime.now().strftime("%W"))
+    weekNum = int(request.args.get('week') or currentWeekNum)
+    week, latest = week_heat_map_from_db(weekNum);
+    print(latest)
+    five_pluses = [week.name for _, week in enumerate(week) if week.data[-1].y >= 5]
     chart = checkin_chart(week, 800, 600, five_pluses)
     write_og_image(chart, weekNum)
-    return render_template('index.html', svg=chart, latest=latest, keys=heatmapData.keys(), week=int(weekNum))
+    return render_template('index.html', svg=chart, latest=latest, keys=[i + 1 for i in range(currentWeekNum)], week=int(weekNum))
 
 
 if __name__ == "__main__":
