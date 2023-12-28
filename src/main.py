@@ -6,7 +6,7 @@ import itertools
 from datetime import datetime, timedelta
 import json
 import svgwrite
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for
 import psycopg
 
 def get_start_end_dates(year, week_num):
@@ -41,8 +41,7 @@ class CheckinChartData(NamedTuple):
     data: List[DataUnit]
 
     def tostring(self) -> str:
-        return json.dumps({"id": self.id, "data": self.data})
-
+        return json.dumps({"name": self.name, "data": self.data})
 
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -88,7 +87,7 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
 
 
 def write_og_image(svg, weekNum):
-    output = './src/static/preview-{week}.png'.format(week=weekNum)
+    output = './static/preview-{week}.png'.format(week=weekNum)
     cairosvg.svg2png(bytestring=svg, write_to=output)
 
 
@@ -124,6 +123,8 @@ def week_heat_map_from_db(weekNum):
         conn.commit()
     return heatmap_data, latest_date[0]
 
+def fiveCheckinsThisWeek(challengerData):
+    return challengerData[6].y >= 5 or challengerData[5].y >= 5 or challengerData[4].y >= 5
 
 @app.route("/")
 def index():
@@ -131,11 +132,19 @@ def index():
     weekNum = int(request.args.get('week') or currentWeekNum)
     week, latest = week_heat_map_from_db(weekNum);
     print(latest)
-    five_pluses = [week.name for _, week in enumerate(week) if week.data[-1].y >= 5]
+    five_pluses = [challenger.name for _, challenger in enumerate(week) if fiveCheckinsThisWeek(challenger.data)]
     chart = checkin_chart(week, 800, 600, five_pluses)
     write_og_image(chart, weekNum)
     return render_template('index.html', svg=chart, latest=latest, keys=[i + 1 for i in range(currentWeekNum)], week=int(weekNum))
-
+    write_og_image(chart, weekNum)
+    og_path = url_for('static', filename='preview-' + str(weekNum) + '.png')
+    print(og_path)
+    return render_template('index.html',
+                           svg=chart,
+                           latest=latest,
+                           keys=heatmapData.keys(),
+                           week=int(weekNum),
+                           og_path=og_path)
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -2,9 +2,10 @@ services:
   main:
     build: 
       context: .
-      args:
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
     ports:
       - "3000:8000"
     environment:
       GOOGLE_API_KEY: $GOOGLE_API_KEY
+      DB_CONNECT_STRING: $DB_CONNECT_STRING
+    volumes:
+      - ./src/static:/src/static
