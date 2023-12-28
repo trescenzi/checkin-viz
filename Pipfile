@@ -9,6 +9,7 @@ svgwrite = "*"
 flask = "*"
 gunicorn = "*"
 cairosvg = "*"
+psycopg = {extras = ["binary"], version = "*"}
 
 [dev-packages]
 
