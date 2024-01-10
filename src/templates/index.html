@@ -64,6 +64,22 @@
           </option>
         {% endfor %}
       </select>
+      <select name="year" id="year">
+        <option
+          {{'selected' if 2024 == year}}
+          value="2024"
+          name="2024"
+        >
+          2024
+        </option>
+        <option
+          {{'selected' if 2023 == year}}
+          value="2023"
+          name="2023"
+        >
+          2023
+        </option>
+      </select>
       <button>View Week</button>
     </form>
     {{ svg | safe }}

@@ -8,6 +8,10 @@ import json
 import svgwrite
 from flask import Flask, render_template, request, url_for
 import psycopg
+import logging
+
+LOGLEVEL = os.environ.get('LOGLEVEL', 'WARNING').upper()
+logging.basicConfig(level=LOGLEVEL)
 
 def get_start_end_dates(year, week_num):
     # Find the first day of the year
@@ -46,6 +50,11 @@ class CheckinChartData(NamedTuple):
 weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pluses: List[str]):
+    if len(data) == 0:
+        logging.warning('empty week + year selected')
+        dwg = svgwrite.Drawing('empty.svg', size=(10, 10))
+        return dwg.tostring()
+
     wGap = 0
     hGap = 20
     gutter = 80
@@ -86,15 +95,15 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
     return dwg.tostring()
 
 
-def write_og_image(svg, weekNum):
-    output = './static/preview-{week}.png'.format(week=weekNum)
+def write_og_image(svg, weekNum, year):
+    output = './static/preview-{week}-{year}.png'.format(week=weekNum,year=year)
     cairosvg.svg2png(bytestring=svg, write_to=output)
 
 
 app = Flask(__name__)
 
 connection_string = os.environ['DB_CONNECT_STRING']
-def week_heat_map_from_db(weekNum):
+def week_heat_map_from_db(weekNum, year):
     name_index = 0
     time_index = 1
     weekday_index = 3
@@ -104,9 +113,10 @@ def week_heat_map_from_db(weekNum):
         with conn.cursor() as cur:
             cur.execute("select time from checkins order by time desc limit 1")
             latest_date = cur.fetchone()
-            start, end = get_start_end_dates(2023, weekNum)
-            print(start, end)
-            cur.execute("select name, time, tier, day_of_week, text from checkins where time >= %s and time < %s",
+            start, end = get_start_end_dates(year, weekNum)
+            logging.info("Week bounds: %s, %s", start, end)
+            logging.info("Query: select distinct on (DATE(time), name) name, time, tier, day_of_week, text from checkins where time >= %s and time < %s", start, end)
+            cur.execute("select distinct on (DATE(time), name) name, time, tier, day_of_week, text from checkins where time >= %s and time < %s",
                         (start, end))
             rows = cur.fetchall()
             rows.sort(key=lambda x: getWeekNumber(x[time_index]))
@@ -130,20 +140,20 @@ def fiveCheckinsThisWeek(challengerData):
 def index():
     currentWeekNum = int(datetime.now().strftime("%W"))
     weekNum = int(request.args.get('week') or currentWeekNum)
-    week, latest = week_heat_map_from_db(weekNum);
-    print(latest)
+    year = int(request.args.get('year') or 2024)
+    week, latest = week_heat_map_from_db(weekNum, year);
     five_pluses = [challenger.name for _, challenger in enumerate(week) if fiveCheckinsThisWeek(challenger.data)]
+    logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(week, 800, 600, five_pluses)
-    write_og_image(chart, weekNum)
-    return render_template('index.html', svg=chart, latest=latest, keys=[i + 1 for i in range(currentWeekNum)], week=int(weekNum))
-    write_og_image(chart, weekNum)
-    og_path = url_for('static', filename='preview-' + str(weekNum) + '.png')
+    write_og_image(chart, weekNum, year)
+    og_path = url_for('static', filename='preview-' + str(weekNum) + '-' + str(year) + '.png')
     print(og_path)
     return render_template('index.html',
                            svg=chart,
                            latest=latest,
-                           keys=heatmapData.keys(),
+                           keys=[i + 1 for i in range(52)],
                            week=int(weekNum),
+                           year=year,
                            og_path=og_path)
 
 if __name__ == "__main__":
