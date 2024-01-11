@@ -123,6 +123,13 @@ def week_heat_map_from_db(weekNum, year):
             grouped_by_weeks = {week: list(value) for week, value in itertools.groupby(rows, key=lambda x: getWeekNumber(x[time_index]))}
             rows.sort(key=lambda x: x[name_index]) # sort on name
             weeks_grouped_by_name = {name: list(value) for name, value in itertools.groupby(rows, key=lambda x: x[name_index])}
+
+            names = get_names();
+            logging.info("Challengers: %s", names)
+            for name in names:
+                if name not in weeks_grouped_by_name:
+                    weeks_grouped_by_name[name] = []
+
             for name in weeks_grouped_by_name: 
                 sorted_checkins = sortCheckinByWeekday(weeks_grouped_by_name[name], weekday_index)
                 data = []
@@ -135,6 +142,14 @@ def week_heat_map_from_db(weekNum, year):
 
 def fiveCheckinsThisWeek(challengerData):
     return challengerData[6].y >= 5 or challengerData[5].y >= 5 or challengerData[4].y >= 5
+
+def get_names():
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from challengers where id in (select challenger_id from challenger_challenges where challenge_id = (select id from challenges where start <= NOW() and \"end\" > NOW())) order by name;")
+            names = cur.fetchall()
+
+            return [n for n, i in names]
 
 @app.route("/")
 def index():
