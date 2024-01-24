@@ -68,15 +68,18 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
 
     dwg = svgwrite.Drawing('checkin.svg', size=(width + 1, height))
     dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), fill='white'))
+    knocked_out_names = knocked_out()
     for column, chart in enumerate(data):
         yLabel = chart.name
-        text1 = dwg.text(yLabel, insert=(0, rectH * column + hGap * column + gutter + rectH / 2), font_size=14, font_weight="bold")
+        is_knocked_out = yLabel in knocked_out_names
+        text1 = dwg.text(yLabel, insert=(0, rectH * column + hGap * column + gutter + rectH / 2), font_size=14, font_weight="bold" if not is_knocked_out else "normal", text_decoration='line-through' if is_knocked_out else 'none')
         dwg.add(text1)
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
             checkedIn = dataUnit.checkedIn
-            fill_color = colors[2] if checkedIn else 'white'
-            stroke_color = colors[3]
+            fill_color = colors[2] if checkedIn and not is_knocked_out else 'white'
+            fill_color = colors[0] if is_knocked_out and checkedIn else fill_color
+            stroke_color = colors[3] if not is_knocked_out else colors[1]
 
             if five_pluses and yLabel in five_pluses and dataUnit.y != 0:
                 fill_color = greens[4]
@@ -150,6 +153,17 @@ def get_names():
             names = cur.fetchall()
 
             return [n for n, i in names]
+
+def knocked_out():
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from challengers where id in (select challenger_id from challenger_challenges where challenge_id = (select id from challenges where start <= NOW() and \"end\" > NOW()) and knocked_out = true) order by name;")
+            knocked_out_names = [n for n, i in cur.fetchall()]
+            logging.info("Knocked Out Challengers: %s", knocked_out_names)
+
+            return knocked_out_names
+
+        
 
 @app.route("/")
 def index():
