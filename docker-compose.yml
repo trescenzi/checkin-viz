@@ -8,3 +8,4 @@ services:
       DB_CONNECT_STRING: $DB_CONNECT_STRING
     volumes:
       - ./src/static:/src/static
+    image: git.tcrez.dev/tcrez/checkin-viz
