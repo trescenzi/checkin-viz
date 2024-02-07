@@ -15,4 +15,5 @@ jobs:
       - name: Push
         run: docker compose push
       - name: Update container
-        run: curl -H "Authorization: Bearer ${{ secrets.WT_TOKEN }}" "https://wt.tcrez.dev/v1/update"
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.WT_TOKEN }}" "https://wt.tcrez.dev/v1/update"
