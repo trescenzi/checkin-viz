@@ -12,3 +12,5 @@ jobs:
         run: ls ${{ gitea.workspace }}
       - name: Build
         run: docker compose build
+      - name: Push
+        run: docker compose push
