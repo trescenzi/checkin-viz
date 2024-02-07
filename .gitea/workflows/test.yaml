@@ -9,4 +9,6 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
       - name: List files in the repository
-        run:  docker compose build
+        run: ls ${{ gitea.workspace }}
+      - name: Build
+        run: docker compose build
