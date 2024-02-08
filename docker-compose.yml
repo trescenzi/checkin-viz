@@ -3,6 +3,7 @@ services:
     build: 
       context: .
     platform: linux/amd64
+    restart: unless-stopped
     ports:
       - "3000:8000"
     environment:
