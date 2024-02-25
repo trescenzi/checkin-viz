@@ -12,6 +12,5 @@ RUN pipenv install --deploy --ignore-pipfile --system
 
 COPY scripts/entrypoint /
 COPY src /src
-RUN chmod 777 /src/static
-# RUN chmod +x entrypoint.sh
+COPY src/static/*.css /src/static/
 ENTRYPOINT [ "./entrypoint" ]
