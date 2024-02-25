@@ -1,9 +1,10 @@
 from typing import List, Dict, NamedTuple
+import math
 import requests
 import os
 import cairosvg
 import itertools
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import json
 import svgwrite
 from flask import Flask, render_template, request, url_for
@@ -217,8 +218,8 @@ def points_so_far(challenge_id):
         FROM
         checkins
         WHERE
-        time >= (SELECT start FROM challenges WHERE id = 3)
-        AND time <= (SELECT "end" FROM challenges WHERE id = 3)
+        time >= (SELECT start FROM challenges WHERE id = %s)
+        AND time <= (SELECT "end" FROM challenges WHERE id = %s)
         GROUP BY
         week, name
         ORDER BY
@@ -227,25 +228,31 @@ def points_so_far(challenge_id):
     """
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(sql, (challenge_id,challenge_id))
             return cur.fetchall()
 
 def challenge_data(challenge_id):
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
             cur.execute("select * from challenges where id = %s;", (challenge_id,))
-            return cur.fetchone()[0]
+            return cur.fetchone()
 
 @app.route("/details")
 def details():
     challenge_id = request.args.get('challenge_id')
     challenge = challenge_data(challenge_id)
     logging.info("Challenge ID: %s %s", challenge_id, challenge)
+    weeksSinceStart = math.floor((date.today() - challenge[1]).days / 7)
+    logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
     points = sorted(points, key=lambda x: -x[0])
     logging.info("points: %s", points)
     challenges = get_challenges()
-    return render_template('details.html', points=points, challenge=challenge, challenges=[c for c in challenges if c[0] not in set([1,2])])
+    return render_template('details.html',
+                           points=points,
+                           challenge=challenge, 
+                           weeks=weeksSinceStart,
+                           challenges=[c for c in challenges if c[3] not in set([1,2,challenge_id])])
 
 
 

@@ -3,52 +3,13 @@
   <head>
     <title>Week {{week}} Checkins</title>
     <meta property="og:title" content="Week {{week}}" />
-    <meta property="og:description" content="" />
-    <meta property="og:url" content="https://checkinviz.tcrez.dev/?week={{week}}" />
-    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <meta property="og:description" content="Checkins for week {{week}}" />
+    <meta property="og:url" content="https://checkinviz.tcrez.dev/?week={{week}}&&year={{year}}" />
     <meta
       property="og:image"
       content="{{og_path}}"
     />
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-      }
-      body {
-        padding: 16px;
-      }
-      svg {
-        margin: 50px auto;
-        display: block;
-      }
-      form {
-        display: inline-block;
-        margin-right: 16px;
-      }
-      form button, select {
-        margin-left: 16px;
-        border: 1px solid #636363;
-        padding: 8px;
-        background-color: white;
-        min-width: 100px;
-        border-radius: 4px;
-      }
-      form button:active,
-      form select:active {
-        background-color: #dfdfdf;
-      }
-      @media(hover: hover) {
-        form button:hover,
-        form select:hover {
-          cursor: pointer;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
   </head>
   <body>
     <h1>Checkins for week {{week}}</h1>
