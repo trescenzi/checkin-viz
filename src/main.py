@@ -360,7 +360,7 @@ def details():
     weeksSinceStart = min(
         math.ceil((date.today() - challenge[1]).days / 7),
         math.floor((challenge[2] - challenge[1]).days / 7)
-    ) - 1
+    ) - challenge[4]
     logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
     points = sorted(points, key=lambda x: -x[0])
