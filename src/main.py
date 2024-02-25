@@ -38,6 +38,7 @@ class DataUnit(NamedTuple):
     x: str
     y: int
     checkedIn: bool
+    time: datetime
 
 
 class CheckinChartData(NamedTuple):
@@ -66,7 +67,7 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
     rectW = (width - rows * wGap - gutter) / rows
     rectH = (height - columns * hGap - gutter) / columns
 
-    dwg = svgwrite.Drawing('checkin.svg', size=(width + 1, height))
+    dwg = svgwrite.Drawing('checkin.svg', size=(width + 1, height), debug = False)
     dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), fill='white'))
     knocked_out_names = knocked_out()
     for column, chart in enumerate(data):
@@ -93,19 +94,25 @@ def checkin_chart(data: List[CheckinChartData], width: int, height: int, five_pl
                 dwg.add(text)
 
             rect = dwg.rect(insert=(row * rectW + row * wGap + gutter, column * rectH + column * hGap + gutter), size=(rectW, rectH), fill=fill_color, stroke=stroke_color, stroke_width=1, rx=2,ry=2)
+            if (dataUnit.time):
+                rect.update({'hx-get': '/view-checkin?date=' + dataUnit.time.isoformat() + '&challenger_id=' + yLabel}) 
             dwg.add(rect)
 
     return dwg.tostring()
 
 
 def write_og_image(svg, weekNum, year):
-    output = './static/preview-{week}-{year}.png'.format(week=weekNum,year=year)
-    cairosvg.svg2png(bytestring=svg, write_to=output)
+    try:
+        output = './static/preview-{week}-{year}.png'.format(week=weekNum,year=year)
+        cairosvg.svg2png(bytestring=svg, write_to=output)
+    except:
+        logging.info("Failed to write og image")
 
 
 app = Flask(__name__)
 
 connection_string = os.environ['DB_CONNECT_STRING']
+logging.info(connection_string)
 def week_heat_map_from_db(weekNum, year):
     name_index = 0
     time_index = 1
@@ -138,7 +145,7 @@ def week_heat_map_from_db(weekNum, year):
                 data = []
                 for i, weekday in enumerate(weekdays):
                     checkinIndex = next((index for index, checkin in enumerate(sorted_checkins) if checkin[weekday_index] == weekday), -1)
-                    data.append(DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1)))
+                    data.append(DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1), sorted_checkins[checkinIndex][time_index] if len(sorted_checkins) > checkinIndex and checkinIndex >= 0 else None))
                 heatmap_data.append(CheckinChartData(name, data))
         conn.commit()
     return heatmap_data, latest_date[0]
@@ -163,10 +170,23 @@ def knocked_out():
 
             return knocked_out_names
 
-        
+def challenge_id(date=datetime.now()):
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            logging.info("select id from challenges where start <= %s and \"end\" > %s", (date, date))
+            cur.execute("select id from challenges where start <= %s and \"end\" > %s", (date, date))
+            return cur.fetchone()[0]
+
+def get_challenges():
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            logging.info("select * from challenges")
+            cur.execute("select * from challenges")
+            return cur.fetchall()
 
 @app.route("/")
 def index():
+    logging.info("Index")
     currentWeekNum = int(datetime.now().strftime("%W"))
     weekNum = int(request.args.get('week') or currentWeekNum)
     year = int(request.args.get('year') or 2024)
@@ -176,14 +196,58 @@ def index():
     chart = checkin_chart(week, 800, 600, five_pluses)
     write_og_image(chart, weekNum, year)
     og_path = url_for('static', filename='preview-' + str(weekNum) + '-' + str(year) + '.png')
-    print(og_path)
+    id = challenge_id(get_start_end_dates(year, weekNum)[0])
+    logging.info("Challenge ID: %s", id)
     return render_template('index.html',
                            svg=chart,
                            latest=latest,
                            keys=[i + 1 for i in range(52)],
                            week=int(weekNum),
                            year=year,
+                           challenge_id=id,
                            og_path=og_path)
+
+def points_so_far(challenge_id):
+    sql = """
+    SELECT SUM(count), name 
+    FROM (SELECT week, name, LEAST(count, 5) as count FROM
+      (SELECT 
+        date_part('week', time) as week, name,
+        COUNT(distinct date_part('day', time)) as count
+        FROM
+        checkins
+        WHERE
+        time >= (SELECT start FROM challenges WHERE id = 3)
+        AND time <= (SELECT "end" FROM challenges WHERE id = 3)
+        GROUP BY
+        week, name
+        ORDER BY
+        week DESC, name
+    ) as sub_query) group by name;
+    """
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            return cur.fetchall()
+
+def challenge_data(challenge_id):
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from challenges where id = %s;", (challenge_id,))
+            return cur.fetchone()[0]
+
+@app.route("/details")
+def details():
+    challenge_id = request.args.get('challenge_id')
+    challenge = challenge_data(challenge_id)
+    logging.info("Challenge ID: %s %s", challenge_id, challenge)
+    points = points_so_far(challenge_id)
+    points = sorted(points, key=lambda x: -x[0])
+    logging.info("points: %s", points)
+    challenges = get_challenges()
+    return render_template('details.html', points=points, challenge=challenge, challenges=challenges)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

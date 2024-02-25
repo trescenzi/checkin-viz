@@ -5,6 +5,7 @@
     <meta property="og:title" content="Week {{week}}" />
     <meta property="og:description" content="" />
     <meta property="og:url" content="https://checkinviz.tcrez.dev/?week={{week}}" />
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
     <meta
       property="og:image"
       content="{{og_path}}"
@@ -82,6 +83,7 @@
       </select>
       <button>View Week</button>
     </form>
+    <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
     <hr/>
     <p><b>Latest as of {{ latest.strftime("%m/%d/%Y %H:%M") }}</b></p>

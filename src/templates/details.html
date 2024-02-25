@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Week {{week}} Checkins</title>
+    <meta property="og:title" content="Challenge Data" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      body {
+        padding: 16px;
+      }
+      svg {
+        margin: 50px auto;
+        display: block;
+      }
+      form {
+        display: inline-block;
+        margin-right: 16px;
+      }
+      form button, select {
+        margin-left: 16px;
+        border: 1px solid #636363;
+        padding: 8px;
+        background-color: white;
+        min-width: 100px;
+        border-radius: 4px;
+      }
+      form button:active,
+      form select:active {
+        background-color: #dfdfdf;
+      }
+      @media(hover: hover) {
+        form button:hover,
+        form select:hover {
+          cursor: pointer;
+        }
+      }
+          table {
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    th, td {
+        padding: 8px;
+        border-bottom: 1px solid #dddddd;
+    }
+
+    th {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    tr:hover {
+        background-color: #f5f5f5;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>Data for {{challenge}}</h1>
+    {% for challenge in challenges %}
+      <a href="/details?challenge_id={{challenge.3}}"><h2 style="display:inline">{{challenge.0}}</h2></a>
+    {% endfor %}
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Total Checkins</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in points %}
+          <tr>
+            <td>{{row.1}}</td>
+            <td>{{row.0}}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
+
