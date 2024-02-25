@@ -245,7 +245,7 @@ def details():
     points = sorted(points, key=lambda x: -x[0])
     logging.info("points: %s", points)
     challenges = get_challenges()
-    return render_template('details.html', points=points, challenge=challenge, challenges=challenges)
+    return render_template('details.html', points=points, challenge=challenge, challenges=[c for c in challenges if c[0] not in set([1,2])])
 
 
 
