@@ -371,7 +371,7 @@ def details():
         points=points,
         challenge=challenge,
         weeks=weeksSinceStart,
-        challenges=[c for c in challenges if c[3] not in set([1, 2, challenge_id])],
+        challenges=[c for c in challenges if c[3] not in set([1, challenge_id])],
     )
 
 
