@@ -357,7 +357,10 @@ def details():
     challenge_id = request.args.get("challenge_id")
     challenge = challenge_data(challenge_id)
     logging.info("Challenge ID: %s %s", challenge_id, challenge)
-    weeksSinceStart = math.floor((date.today() - challenge[1]).days / 7)
+    weeksSinceStart = min(
+        math.ceil((date.today() - challenge[1]).days / 7),
+        math.floor((challenge[2] - challenge[1]).days / 7)
+    ) - 1
     logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
     points = sorted(points, key=lambda x: -x[0])
