@@ -10,11 +10,16 @@ import svgwrite
 from flask import Flask, render_template, request, url_for
 import psycopg
 import logging
-from models import Week
+from models import Checkins, Challenges, ChallengeWeeks
+from peewee import *
+import random
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
-logging.basicConfig(level=LOGLEVEL)
+logging.basicConfig(level="INFO")
+pwlogger = logging.getLogger('peewee')
+pwlogger.addHandler(logging.StreamHandler())
+pwlogger.setLevel(logging.DEBUG)
 
 
 def get_start_end_dates(year, week_num):
@@ -153,9 +158,9 @@ def checkin_chart(
     return dwg.tostring()
 
 
-def write_og_image(svg, weekNum, year):
+def write_og_image(svg, week):
     try:
-        output = "./static/preview-{week}-{year}.png".format(week=weekNum, year=year)
+        output = "./static/preview-{week}.png".format(week=week)
         cairosvg.svg2png(bytestring=svg, write_to=output)
     except:
         logging.info("Failed to write og image")
@@ -164,80 +169,6 @@ def write_og_image(svg, weekNum, year):
 app = Flask(__name__)
 
 logging.info(connection_string)
-
-
-def week_heat_map_from_db(weekNum, year):
-    name_index = 0
-    time_index = 1
-    weekday_index = 3
-    heatmap_data = []
-    latest_date = None
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select time from checkins order by time desc limit 1")
-            latest_date = cur.fetchone()
-            start, end = get_start_end_dates(year, weekNum)
-            logging.info("Week bounds: %s, %s", start, end)
-            logging.info(
-                "Query: select distinct on (DATE(time), name) name, time, tier, day_of_week, text from checkins where time >= %s and time < %s",
-                start,
-                end,
-            )
-            cur.execute(
-                "select distinct on (DATE(time), name) name, time, tier, day_of_week, text from checkins where time >= %s and time < %s",
-                (start, end),
-            )
-            rows = cur.fetchall()
-            rows.sort(key=lambda x: getWeekNumber(x[time_index]))
-            grouped_by_weeks = {
-                week: list(value)
-                for week, value in itertools.groupby(
-                    rows, key=lambda x: getWeekNumber(x[time_index])
-                )
-            }
-            rows.sort(key=lambda x: x[name_index])  # sort on name
-            weeks_grouped_by_name = {
-                name: list(value)
-                for name, value in itertools.groupby(rows, key=lambda x: x[name_index])
-            }
-
-            names = get_names()
-            logging.info("Challengers: %s", names)
-            for name in names:
-                if name not in weeks_grouped_by_name:
-                    weeks_grouped_by_name[name] = []
-
-            for name in weeks_grouped_by_name:
-                sorted_checkins = sortCheckinByWeekday(
-                    weeks_grouped_by_name[name], weekday_index
-                )
-                data = []
-                for i, weekday in enumerate(weekdays):
-                    checkinIndex = next(
-                        (
-                            index
-                            for index, checkin in enumerate(sorted_checkins)
-                            if checkin[weekday_index] == weekday
-                        ),
-                        -1,
-                    )
-                    data.append(
-                        DataUnit(
-                            weekday,
-                            checkinIndex + 1,
-                            bool(checkinIndex + 1),
-                            (
-                                sorted_checkins[checkinIndex][time_index]
-                                if len(sorted_checkins) > checkinIndex
-                                and checkinIndex >= 0
-                                else None
-                            ),
-                        )
-                    )
-                heatmap_data.append(CheckinChartData(name, data))
-        conn.commit()
-    return heatmap_data, latest_date[0]
-
 
 def fiveCheckinsThisWeek(challengerData):
     return (
@@ -304,49 +235,6 @@ def weeks_in_challenge_by_date(date):
             return cur.fetchall()
 
 
-@app.route("/")
-def index():
-    logging.info("Index")
-    checkin = None;
-    if not "week" in request.args:
-        logging.info('defaulting to current week')
-    currentWeekNum = int(datetime.now().strftime("%W"))
-    weekNum = int(request.args.get("week") or currentWeekNum)
-    weekEight = Week(week_of_year=8)
-    logging.info("WEEK EIGHT: %s", weekEight)
-    year = int(request.args.get("year") or 2024)
-    week, latest = week_heat_map_from_db(weekNum, year)
-    challenges = get_challenges()
-    logging.info("Challenges: %s", challenges)
-    challenge = next(c for c in challenges if c[3] == 3)
-    logging.info("Challenge: %s", challenge)
-    weeks = weeks_in_challenge(challenge)
-    logging.info("Weeks: %s", weeks)
-    five_pluses = [
-        challenger.name
-        for _, challenger in enumerate(week)
-        if fiveCheckinsThisWeek(challenger.data)
-    ]
-    logging.info("WEEK: %s, LATEST: %s", week, latest)
-    chart = checkin_chart(week, 800, 600, five_pluses)
-    write_og_image(chart, weekNum, year)
-    og_path = url_for(
-        "static", filename="preview-" + str(weekNum) + "-" + str(year) + ".png"
-    )
-    id = get_challenge_id(get_start_end_dates(year, weekNum)[0])
-    logging.info("Challenge ID: %s", id)
-    return render_template(
-        "index.html",
-        svg=chart,
-        latest=latest,
-        keys=[i + 1 for i in range(52)],
-        week=int(weekNum),
-        year=year,
-        challenge_id=id,
-        og_path=og_path,
-    )
-
-
 def points_so_far(challenge_id):
     sql = """
     SELECT SUM(count), name 
@@ -400,22 +288,46 @@ def details():
         challenges=[c for c in challenges if c[3] not in set([1, challenge_id])],
     )
 
-@app.route("/models")
-def models():
-    week = None
+def challenge_weeks():
+    challenges = Challenges.select(Challenges.name, ChallengeWeeks.id).join(ChallengeWeeks).order_by(ChallengeWeeks.start)
+    obj = {
+        name: [v[1] for v in value] for name, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])
+    }
+    return [list(value) for n, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])]
 
-    challenge_id = request.args.get("challenge_id")
-    week_num = request.args.get("week_num")
-    weekNum = int(datetime.now().strftime("%W"))
-    year = int(datetime.now().strftime("%Y")) 
-    if (challenge_id is not None and week_num is not None):
-        week = Week(challenge_id, int(week_num))
+@app.route("/")
+def index():
+    challenge_name = request.args.get("challenge")
+    logging.info("Challenge requested: %s", challenge_name)
+    week_index = request.args.get("challenge_week_%s" % challenge_name)
+    logging.info("Week requested: %s", week_index)
+    now = datetime.now()
+    current_year = int(now.strftime("%Y")) 
+    current_week = int(now.strftime("%W"))
+    current_date = date.today().isoformat()
+
+    current_challenge = None;
+    if challenge_name is None:
+        logging.info("Getting challenge for current week dates: %s %s %s", current_year, current_week, current_date)
+        current_challenge = Challenges.select().where((Challenges.start <= current_date) & (Challenges.end >= current_date)).get()
     else:
-        week = Week(week_of_year=weekNum, year=year)
-    logging.info("WEEK EIGHT: %s", week)
-    logging.info("Week checkins: %s", [checkin.name for checkin in week.checkins])
-    logging.info("Heatmap data %s", week_heat_map_from_checkins(week.checkins))
-    week, latest = week_heat_map_from_db(weekNum, year)
+        logging.info("Getting challenge with name: %s", challenge_name)
+        current_challenge = Challenges.select().where(Challenges.name == challenge_name).get()
+
+    challenge_week_predicate = (ChallengeWeeks.start.year ==  current_year) & (ChallengeWeeks.week_of_year == current_week);
+    current_challenge_week = ChallengeWeeks.select().where(challenge_week_predicate).get()
+
+
+    checkin_predicate = ((Checkins.time >= ChallengeWeeks.start) & (Checkins.time < ChallengeWeeks.end))
+    checkins = None
+    if (week_index is not None):
+        checkins = Checkins.select().join(ChallengeWeeks, on=(checkin_predicate)).where(ChallengeWeeks.id == week_index)
+    else:
+        week_index = current_challenge_week.id
+        checkins = Checkins.select().join(ChallengeWeeks, on=(checkin_predicate)).where(challenge_week_predicate) 
+
+    logging.info("Week checkins: %s", [checkin.name for checkin in checkins.objects()])
+    week, latest = week_heat_map_from_checkins([checkin for checkin in checkins.objects()])
     five_pluses = [
         challenger.name
         for _, challenger in enumerate(week)
@@ -423,22 +335,36 @@ def models():
     ]
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(week, 800, 600, five_pluses)
-    write_og_image(chart, weekNum, year)
+    write_og_image(chart, week_index)
     og_path = url_for(
-        "static", filename="preview-" + str(weekNum) + "-" + str(year) + ".png"
+        "static", filename="preview-" + str(week_index) + ".png"
     )
-    id = get_challenge_id(get_start_end_dates(year, weekNum)[0])
-    logging.info("Challenge ID: %s", id)
+    logging.info("Challenge ID: %s", current_challenge.id)
+    cws = challenge_weeks()
+    logging.info("Weeks: %s", cws)
+    current_challenge_weeks = next(v for v in cws if v[0][0] == current_challenge.name)
+    logging.info("Current week index: %s", current_challenge_weeks)
+    week_index = next(i for i, v in enumerate(current_challenge_weeks) if v[1] == current_challenge_week.id)
+    logging.info("Week Index: %s", week_index)
     return render_template(
         "index.html",
         svg=chart,
         latest=latest,
-        keys=[i + 1 for i in range(52)],
-        week=int(weekNum),
-        year=year,
-        challenge_id=id,
+        week=int(current_week),
+        year=current_year,
+        challenge_id=current_challenge.id,
         og_path=og_path,
+        challenge_weeks=cws,
+        current_challenge=current_challenge.name,
+        current_week_index=week_index,
+        current_week=8
     )
+
+@app.route("/make-it-green")
+def make_it_green():
+    green = random.randint(1,100) < 21
+    logging.info("is is green %s", green)
+    return render_template("green.html", green=green)
 
 def sortCheckinByWeekdayS(data: List[str]) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x.day_of_week))

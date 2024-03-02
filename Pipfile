@@ -10,6 +10,9 @@ flask = "*"
 gunicorn = "*"
 cairosvg = "*"
 psycopg = {extras = ["binary"], version = "*"}
+python-dotenv = "*"
+peewee = "*"
+psycopg2 = "*"
 
 [dev-packages]
 

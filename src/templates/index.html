@@ -10,39 +10,58 @@
       content="{{og_path}}"
     />
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <style>
+      select.challenge_week {
+        display: none;
+      }
+      {% for challenge in challenge_weeks %}
+      select[data-chosen="{{challenge[0][0]}}"] ~ #challenge_{{loop.index}}_weeks {
+        display: inline-block;
+      }
+      {% endfor %}
+    </style>
   </head>
   <body>
-    <h1>Checkins for week {{week}}</h1>
+    <h1>Checkins for {{current_challenge}} week {{current_week_index}} </h1>
     <form>
-      <label for="week">Week:</label>
-      <select name="week" id="week">
-        {% for key in keys %}
+      <label for="challenge">Challenge:</label>
+      <select 
+        name="challenge"
+        id="challenge"
+        onchange="this.dataset.chosen = this.value;"
+        data-chosen="{{current_challenge}}"
+      >
+        {% for challenge in challenge_weeks %}
           <option
-            {{'selected' if key == week}}
-            value="{{key}}"
-            name="{{key}}"
+            {{'selected' if challenge[0][0] == current_challenge }}
+            value="{{challenge[0][0]}}"
+            name="{{challenge[0][0]}}"
           >
-            {{key}}
+            {{challenge[0][0]}}
           </option>
         {% endfor %}
       </select>
-      <select name="year" id="year">
-        <option
-          {{'selected' if 2024 == year}}
-          value="2024"
-          name="2024"
+      {% for challenge in challenge_weeks %}
+        <select
+          name="challenge_week_{{challenge[0][0]}}"
+          id="challenge_{{loop.index}}_weeks"
+          class="challenge_week"
         >
-          2024
-        </option>
-        <option
-          {{'selected' if 2023 == year}}
-          value="2023"
-          name="2023"
-        >
-          2023
-        </option>
-      </select>
+          {% for week in challenge %}
+            <option
+              {{'selected' if loop.index == current_week_index}}
+              value="{{week[1]}}"
+              name="{{loop.index}}"
+            >
+              Week: {{loop.index}}
+            </option>
+          {% endfor %}
+        </select>
+      {% endfor %}
       <button>View Week</button>
+    </form>
+    <form action="/make-it-green">
+      <button>Make it Green?!</button>
     </form>
     <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
