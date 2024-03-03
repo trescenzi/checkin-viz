@@ -84,6 +84,7 @@ def checkin_chart(
     five_pluses: List[str],
     challenge_id,
     green,
+    bye_week
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -110,7 +111,13 @@ def checkin_chart(
     rectH = (height - columns * hGap - gutter) / columns
 
     dwg = svgwrite.Drawing("checkin.svg", size=(width + 1, height), debug=False)
-    dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), fill="white" if not green else "#169450"))
+    dwg.add(
+        dwg.rect(
+            insert=(0, 0),
+            size=("100%", "100%"),
+            fill="white" if not green else "#169450",
+        )
+    )
     knocked_out_names = knocked_out(challenge_id)
     logging.info("knocked out: %s", knocked_out_names)
     for column, chart in enumerate(data):
@@ -166,6 +173,12 @@ def checkin_chart(
                     }
                 )
             dwg.add(rect)
+
+    if bye_week:
+        text = dwg.text("BYE")
+        text.translate(width / 4, height/2)
+        text["font-size"] = 200
+        dwg.add(text)
 
     return dwg.tostring()
 
@@ -358,7 +371,9 @@ def index():
         if fiveCheckinsThisWeek(challenger.data)
     ]
     logging.info("WEEK: %s, LATEST: %s", week, latest)
-    chart = checkin_chart(week, 800, 600, five_pluses, current_challenge.id, current_challenge_week.green)
+    chart = checkin_chart(
+        week, 800, 600, five_pluses, current_challenge.id, current_challenge_week.green, current_challenge_week.bye_week
+    )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
     logging.info("Challenge ID: %s", current_challenge.id)
@@ -385,7 +400,7 @@ def index():
         current_week_start=current_challenge_weeks[week_index - 1][2].strftime("%m/%d"),
         current_week=current_week,
         viewing_this_week=challenge_name == request.args.get("challenge") == None,
-        green=current_challenge_week.green
+        green=current_challenge_week.green,
     )
 
 
@@ -394,7 +409,7 @@ def make_it_green():
     green = random.randint(1, 100) < 21
     logging.info("is is green %s", green)
     challenge_week = get_current_challenge_week()
-    if (challenge_week.green is None):
+    if challenge_week.green is None:
         challenge_week.green = green
         challenge_week.save()
     return render_template("green.html", green=green)
