@@ -10,14 +10,20 @@ import svgwrite
 from flask import Flask, render_template, request, url_for
 import psycopg
 import logging
-from models import Checkins, Challenges, ChallengeWeeks, Challengers, ChallengerChallenges
+from models import (
+    Checkins,
+    Challenges,
+    ChallengeWeeks,
+    Challengers,
+    ChallengerChallenges,
+)
 from peewee import *
 import random
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level="INFO")
-pwlogger = logging.getLogger('peewee')
+pwlogger = logging.getLogger("peewee")
 pwlogger.addHandler(logging.StreamHandler())
 pwlogger.setLevel(logging.DEBUG)
 
@@ -72,8 +78,11 @@ weekdays = [
 
 
 def checkin_chart(
-    data: List[CheckinChartData], width: int, height: int, five_pluses: List[str],
-    challenge_id
+    data: List[CheckinChartData],
+    width: int,
+    height: int,
+    five_pluses: List[str],
+    challenge_id,
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -172,6 +181,7 @@ app = Flask(__name__)
 
 logging.info(connection_string)
 
+
 def fiveCheckinsThisWeek(challengerData):
     return (
         challengerData[6].y >= 5 or challengerData[5].y >= 5 or challengerData[4].y >= 5
@@ -179,11 +189,26 @@ def fiveCheckinsThisWeek(challengerData):
 
 
 def get_names(challenge_id):
-    return [n.name for n in Challengers.select(Challengers.name).join(ChallengerChallenges).where(ChallengerChallenges.challenge == challenge_id).objects()]
+    return [
+        n.name
+        for n in Challengers.select(Challengers.name)
+        .join(ChallengerChallenges)
+        .where(ChallengerChallenges.challenge == challenge_id)
+        .objects()
+    ]
 
 
 def knocked_out(challenge_id):
-    return [n.name for n in Challengers.select(Challengers.name).join(ChallengerChallenges).where((ChallengerChallenges.challenge == challenge_id) & (ChallengerChallenges.knocked_out == True)).objects()]
+    return [
+        n.name
+        for n in Challengers.select(Challengers.name)
+        .join(ChallengerChallenges)
+        .where(
+            (ChallengerChallenges.challenge == challenge_id)
+            & (ChallengerChallenges.knocked_out == True)
+        )
+        .objects()
+    ]
 
 
 def get_challenges():
@@ -192,6 +217,7 @@ def get_challenges():
             logging.info("select * from challenges")
             cur.execute("select * from challenges")
             return cur.fetchall()
+
 
 def points_so_far(challenge_id):
     sql = """
@@ -229,10 +255,13 @@ def details():
     challenge_id = request.args.get("challenge_id")
     challenge = challenge_data(challenge_id)
     logging.info("Challenge ID: %s %s", challenge_id, challenge)
-    weeksSinceStart = min(
-        math.ceil((date.today() - challenge[1]).days / 7),
-        math.floor((challenge[2] - challenge[1]).days / 7)
-    ) - challenge[4]
+    weeksSinceStart = (
+        min(
+            math.ceil((date.today() - challenge[1]).days / 7),
+            math.floor((challenge[2] - challenge[1]).days / 7),
+        )
+        - challenge[4]
+    )
     logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
     points = sorted(points, key=lambda x: -x[0])
@@ -246,9 +275,18 @@ def details():
         challenges=[c for c in challenges if c[3] not in set([1, challenge_id])],
     )
 
+
 def challenge_weeks():
-    challenges = Challenges.select(Challenges.name, ChallengeWeeks.id, ChallengeWeeks.start).join(ChallengeWeeks).order_by(ChallengeWeeks.start)
-    return [list(value) for n, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])]
+    challenges = (
+        Challenges.select(Challenges.name, ChallengeWeeks.id, ChallengeWeeks.start)
+        .join(ChallengeWeeks)
+        .order_by(ChallengeWeeks.start)
+    )
+    return [
+        list(value)
+        for n, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])
+    ]
+
 
 @app.route("/")
 def index():
@@ -261,26 +299,50 @@ def index():
     current_week = int(now.strftime("%W"))
     current_date = date.today().isoformat()
 
-    current_challenge = None;
+    current_challenge = None
     if challenge_name is None:
-        logging.info("Getting challenge for current week dates: %s %s %s", current_year, current_week, current_date)
-        current_challenge = Challenges.select().where((Challenges.start <= current_date) & (Challenges.end >= current_date)).get()
+        logging.info(
+            "Getting challenge for current week dates: %s %s %s",
+            current_year,
+            current_week,
+            current_date,
+        )
+        current_challenge = (
+            Challenges.select()
+            .where(
+                (Challenges.start <= current_date) & (Challenges.end >= current_date)
+            )
+            .get()
+        )
     else:
         logging.info("Getting challenge with name: %s", challenge_name)
-        current_challenge = Challenges.select().where(Challenges.name == challenge_name).get()
+        current_challenge = (
+            Challenges.select().where(Challenges.name == challenge_name).get()
+        )
 
-    challenge_week_predicate = (ChallengeWeeks.start.year ==  current_year) & (ChallengeWeeks.week_of_year == current_week);
-    current_challenge_week = ChallengeWeeks.select().where(challenge_week_predicate).get()
+    challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
+        ChallengeWeeks.week_of_year == current_week
+    )
+    current_challenge_week = (
+        ChallengeWeeks.select().where(challenge_week_predicate).get()
+    )
 
-
-    checkin_predicate = ((Checkins.time >= ChallengeWeeks.start) & (Checkins.time < ChallengeWeeks.end))
+    checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
+        Checkins.time < ChallengeWeeks.end
+    )
     checkins = None
-    if (week_id is None):
+    if week_id is None:
         week_id = current_challenge_week.id
-    checkins = Checkins.select().join(ChallengeWeeks, on=(checkin_predicate)).where(ChallengeWeeks.id == week_id)
+    checkins = (
+        Checkins.select()
+        .join(ChallengeWeeks, on=(checkin_predicate))
+        .where(ChallengeWeeks.id == week_id)
+    )
 
     logging.info("Week checkins: %s", [checkin.name for checkin in checkins.objects()])
-    week, latest = week_heat_map_from_checkins([checkin for checkin in checkins.objects()], current_challenge.id)
+    week, latest = week_heat_map_from_checkins(
+        [checkin for checkin in checkins.objects()], current_challenge.id
+    )
     five_pluses = [
         challenger.name
         for _, challenger in enumerate(week)
@@ -289,15 +351,16 @@ def index():
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(week, 800, 600, five_pluses, current_challenge.id)
     write_og_image(chart, week_id)
-    og_path = url_for(
-        "static", filename="preview-" + str(week_id) + ".png"
-    )
+    og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
     logging.info("Challenge ID: %s", current_challenge.id)
     cws = challenge_weeks()
     logging.info("Weeks: %s", cws)
     current_challenge_weeks = next(v for v in cws if v[0][0] == current_challenge.name)
     logging.info("Current week index: %s", current_challenge_weeks)
-    week_index = next(i for i, v in enumerate(current_challenge_weeks) if v[1] == int(week_id)) + 1
+    week_index = (
+        next(i for i, v in enumerate(current_challenge_weeks) if v[1] == int(week_id))
+        + 1
+    )
     logging.info("Week Index: %s, Week ID: %s", week_index, week_id)
     return render_template(
         "index.html",
@@ -310,18 +373,21 @@ def index():
         challenge_weeks=cws,
         current_challenge=current_challenge.name,
         current_week_index=week_index,
-        current_week_start=current_challenge_weeks[week_index-1][2].strftime("%m/%d"),
-        current_week=current_week
+        current_week_start=current_challenge_weeks[week_index - 1][2].strftime("%m/%d"),
+        current_week=current_week,
     )
+
 
 @app.route("/make-it-green")
 def make_it_green():
-    green = random.randint(1,100) < 21
+    green = random.randint(1, 100) < 21
     logging.info("is is green %s", green)
     return render_template("green.html", green=green)
 
+
 def sortCheckinByWeekdayS(data: List[str]) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x.day_of_week))
+
 
 def week_heat_map_from_checkins(checkins, challenge_id):
     heatmap_data = []
@@ -362,8 +428,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                     bool(checkinIndex + 1),
                     (
                         sorted_checkins[checkinIndex].time
-                        if len(sorted_checkins) > checkinIndex
-                        and checkinIndex >= 0
+                        if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
                         else None
                     ),
                 )
