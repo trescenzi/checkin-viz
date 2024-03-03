@@ -8,6 +8,9 @@ services:
       - "3000:8000"
     environment:
       DB_CONNECT_STRING: $DB_CONNECT_STRING
+      DB_USER: $DB_USER
+      DB_HOST: $DB_HOST
+      DB_PASSWORD: $DB_PASSWORD
     volumes:
       - ./src/static:/src/static
     image: git.tcrez.dev/tcrez/checkin-viz
