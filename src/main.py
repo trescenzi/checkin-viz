@@ -10,7 +10,7 @@ import svgwrite
 from flask import Flask, render_template, request, url_for
 import psycopg
 import logging
-from models import Checkins, Challenges, ChallengeWeeks
+from models import Checkins, Challenges, ChallengeWeeks, Challengers, ChallengerChallenges
 from peewee import *
 import random
 
@@ -72,7 +72,8 @@ weekdays = [
 
 
 def checkin_chart(
-    data: List[CheckinChartData], width: int, height: int, five_pluses: List[str]
+    data: List[CheckinChartData], width: int, height: int, five_pluses: List[str],
+    challenge_id
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -100,7 +101,8 @@ def checkin_chart(
 
     dwg = svgwrite.Drawing("checkin.svg", size=(width + 1, height), debug=False)
     dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), fill="white"))
-    knocked_out_names = knocked_out()
+    knocked_out_names = knocked_out(challenge_id)
+    logging.info("knocked out: %s", knocked_out_names)
     for column, chart in enumerate(data):
         yLabel = chart.name
         is_knocked_out = yLabel in knocked_out_names
@@ -176,41 +178,12 @@ def fiveCheckinsThisWeek(challengerData):
     )
 
 
-def get_names():
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                'select * from challengers where id in (select challenger_id from challenger_challenges where challenge_id = (select id from challenges where start <= NOW() and "end" > NOW())) order by name;'
-            )
-            names = cur.fetchall()
-
-            return [n for n, i in names]
+def get_names(challenge_id):
+    return [n.name for n in Challengers.select(Challengers.name).join(ChallengerChallenges).where(ChallengerChallenges.challenge == challenge_id).objects()]
 
 
-def knocked_out():
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                'select * from challengers where id in (select challenger_id from challenger_challenges where challenge_id = (select id from challenges where start <= NOW() and "end" > NOW()) and knocked_out = true) order by name;'
-            )
-            knocked_out_names = [n for n, i in cur.fetchall()]
-            logging.info("Knocked Out Challengers: %s", knocked_out_names)
-
-            return knocked_out_names
-
-
-def get_challenge_id(date=datetime.now()):
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            logging.info(
-                'select id from challenges where start <= %s and "end" > %s',
-                (date, date),
-            )
-            cur.execute(
-                'select id from challenges where start <= %s and "end" > %s',
-                (date, date),
-            )
-            return cur.fetchone()[0]
+def knocked_out(challenge_id):
+    return [n.name for n in Challengers.select(Challengers.name).join(ChallengerChallenges).where((ChallengerChallenges.challenge == challenge_id) & (ChallengerChallenges.knocked_out == True)).objects()]
 
 
 def get_challenges():
@@ -219,21 +192,6 @@ def get_challenges():
             logging.info("select * from challenges")
             cur.execute("select * from challenges")
             return cur.fetchall()
-
-def weeks_in_challenge(challenge_id):
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            logging.info("select * from challenges where id = %s", challenge_id)
-            cur.execute("select * from challenge_weeks where challenge_id = %s", (challenge_id))
-            return cur.fetchall()
-
-def weeks_in_challenge_by_date(date):
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            logging.info("select * from challenges where id = %s", challenge_id)
-            cur.execute("select * from challenge_weeks where challenge_id in (select id from challenges where start <= %s and \"end\" >= %s)", (date, date))
-            return cur.fetchall()
-
 
 def points_so_far(challenge_id):
     sql = """
@@ -289,20 +247,17 @@ def details():
     )
 
 def challenge_weeks():
-    challenges = Challenges.select(Challenges.name, ChallengeWeeks.id).join(ChallengeWeeks).order_by(ChallengeWeeks.start)
-    obj = {
-        name: [v[1] for v in value] for name, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])
-    }
+    challenges = Challenges.select(Challenges.name, ChallengeWeeks.id, ChallengeWeeks.start).join(ChallengeWeeks).order_by(ChallengeWeeks.start)
     return [list(value) for n, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])]
 
 @app.route("/")
 def index():
     challenge_name = request.args.get("challenge")
     logging.info("Challenge requested: %s", challenge_name)
-    week_index = request.args.get("challenge_week_%s" % challenge_name)
-    logging.info("Week requested: %s", week_index)
+    week_id = request.args.get("challenge_week_%s" % challenge_name)
+    logging.info("Week requested: %s", week_id)
     now = datetime.now()
-    current_year = int(now.strftime("%Y")) 
+    current_year = int(now.strftime("%Y"))
     current_week = int(now.strftime("%W"))
     current_date = date.today().isoformat()
 
@@ -320,32 +275,30 @@ def index():
 
     checkin_predicate = ((Checkins.time >= ChallengeWeeks.start) & (Checkins.time < ChallengeWeeks.end))
     checkins = None
-    if (week_index is not None):
-        checkins = Checkins.select().join(ChallengeWeeks, on=(checkin_predicate)).where(ChallengeWeeks.id == week_index)
-    else:
-        week_index = current_challenge_week.id
-        checkins = Checkins.select().join(ChallengeWeeks, on=(checkin_predicate)).where(challenge_week_predicate) 
+    if (week_id is None):
+        week_id = current_challenge_week.id
+    checkins = Checkins.select().join(ChallengeWeeks, on=(checkin_predicate)).where(ChallengeWeeks.id == week_id)
 
     logging.info("Week checkins: %s", [checkin.name for checkin in checkins.objects()])
-    week, latest = week_heat_map_from_checkins([checkin for checkin in checkins.objects()])
+    week, latest = week_heat_map_from_checkins([checkin for checkin in checkins.objects()], current_challenge.id)
     five_pluses = [
         challenger.name
         for _, challenger in enumerate(week)
         if fiveCheckinsThisWeek(challenger.data)
     ]
     logging.info("WEEK: %s, LATEST: %s", week, latest)
-    chart = checkin_chart(week, 800, 600, five_pluses)
-    write_og_image(chart, week_index)
+    chart = checkin_chart(week, 800, 600, five_pluses, current_challenge.id)
+    write_og_image(chart, week_id)
     og_path = url_for(
-        "static", filename="preview-" + str(week_index) + ".png"
+        "static", filename="preview-" + str(week_id) + ".png"
     )
     logging.info("Challenge ID: %s", current_challenge.id)
     cws = challenge_weeks()
     logging.info("Weeks: %s", cws)
     current_challenge_weeks = next(v for v in cws if v[0][0] == current_challenge.name)
     logging.info("Current week index: %s", current_challenge_weeks)
-    week_index = next(i for i, v in enumerate(current_challenge_weeks) if v[1] == current_challenge_week.id)
-    logging.info("Week Index: %s", week_index)
+    week_index = next(i for i, v in enumerate(current_challenge_weeks) if v[1] == int(week_id)) + 1
+    logging.info("Week Index: %s, Week ID: %s", week_index, week_id)
     return render_template(
         "index.html",
         svg=chart,
@@ -357,7 +310,8 @@ def index():
         challenge_weeks=cws,
         current_challenge=current_challenge.name,
         current_week_index=week_index,
-        current_week=8
+        current_week_start=current_challenge_weeks[week_index-1][2].strftime("%m/%d"),
+        current_week=current_week
     )
 
 @app.route("/make-it-green")
@@ -369,7 +323,7 @@ def make_it_green():
 def sortCheckinByWeekdayS(data: List[str]) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x.day_of_week))
 
-def week_heat_map_from_checkins(checkins):
+def week_heat_map_from_checkins(checkins, challenge_id):
     heatmap_data = []
     latest_date = None
     with psycopg.connect(conninfo=connection_string) as conn:
@@ -377,13 +331,13 @@ def week_heat_map_from_checkins(checkins):
             cur.execute("select time from checkins order by time desc limit 1")
             latest_date = cur.fetchone()
         conn.commit()
-    checkins.sort(key=lambda x: x.name)  # sort on name
+    checkins.sort(key=lambda x: x.name)
     weeks_grouped_by_name = {
         name: list(value)
         for name, value in itertools.groupby(checkins, key=lambda x: x.name)
     }
 
-    names = get_names()
+    names = get_names(challenge_id)
     logging.info("Challengers: %s", names)
     for name in names:
         if name not in weeks_grouped_by_name:

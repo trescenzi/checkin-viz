@@ -1,4 +1,5 @@
 from peewee import *
+import os
 
 db_password = os.environ["DB_PASSWORD"]
 db_user = os.environ["DB_USER"]

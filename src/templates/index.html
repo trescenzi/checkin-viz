@@ -10,21 +10,23 @@
       content="{{og_path}}"
     />
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-    <style>
-      select.challenge_week {
-        display: none;
+    <script type="text/javascript">
+      window.onload = function() {
+        challengeWeeks = [...document.querySelectorAll('.challenge_week')]
+        function showSelectedWeek() {
+          challengeWeeks.forEach(w => w.remove());
+          const selectedWeek = challengeWeeks.find(w => w.name.includes(challenge.dataset.chosen))
+          challenge.after(selectedWeek);
+        }
+        showSelectedWeek();
+        challenge.addEventListener('change', showSelectedWeek);
       }
-      {% for challenge in challenge_weeks %}
-      select[data-chosen="{{challenge[0][0]}}"] ~ #challenge_{{loop.index}}_weeks {
-        display: inline-block;
-      }
-      {% endfor %}
-    </style>
+    </script>
   </head>
   <body>
-    <h1>Checkins for {{current_challenge}} week {{current_week_index}} </h1>
-    <form>
+    <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
       <label for="challenge">Challenge:</label>
+    <form id="challengeForm">
       <select 
         name="challenge"
         id="challenge"
@@ -49,7 +51,7 @@
         >
           {% for week in challenge %}
             <option
-              {{'selected' if loop.index == current_week_index}}
+              {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
               value="{{week[1]}}"
               name="{{loop.index}}"
             >
@@ -60,9 +62,11 @@
       {% endfor %}
       <button>View Week</button>
     </form>
+    <!-- TODO add this back in
     <form action="/make-it-green">
       <button>Make it Green?!</button>
     </form>
+    -->
     <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
     <hr/>
