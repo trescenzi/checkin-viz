@@ -12,7 +12,7 @@ cairosvg = "*"
 psycopg = {extras = ["binary"], version = "*"}
 python-dotenv = "*"
 peewee = "*"
-psycopg2 = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
