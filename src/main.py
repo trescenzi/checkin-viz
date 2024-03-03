@@ -83,6 +83,7 @@ def checkin_chart(
     height: int,
     five_pluses: List[str],
     challenge_id,
+    green,
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -109,7 +110,7 @@ def checkin_chart(
     rectH = (height - columns * hGap - gutter) / columns
 
     dwg = svgwrite.Drawing("checkin.svg", size=(width + 1, height), debug=False)
-    dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), fill="white"))
+    dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), fill="white" if not green else "#169450"))
     knocked_out_names = knocked_out(challenge_id)
     logging.info("knocked out: %s", knocked_out_names)
     for column, chart in enumerate(data):
@@ -288,6 +289,19 @@ def challenge_weeks():
     ]
 
 
+def get_current_challenge_week():
+    now = datetime.now()
+    current_year = int(now.strftime("%Y"))
+    current_week = int(now.strftime("%W"))
+    challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
+        ChallengeWeeks.week_of_year == current_week
+    )
+    current_challenge_week = (
+        ChallengeWeeks.select().where(challenge_week_predicate).get()
+    )
+    return current_challenge_week
+
+
 @app.route("/")
 def index():
     challenge_name = request.args.get("challenge")
@@ -320,19 +334,14 @@ def index():
             Challenges.select().where(Challenges.name == challenge_name).get()
         )
 
-    challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
-        ChallengeWeeks.week_of_year == current_week
-    )
-    current_challenge_week = (
-        ChallengeWeeks.select().where(challenge_week_predicate).get()
-    )
+    current_challenge_week = get_current_challenge_week()
 
     checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
         Checkins.time < ChallengeWeeks.end
     )
-    checkins = None
     if week_id is None:
         week_id = current_challenge_week.id
+
     checkins = (
         Checkins.select()
         .join(ChallengeWeeks, on=(checkin_predicate))
@@ -349,7 +358,7 @@ def index():
         if fiveCheckinsThisWeek(challenger.data)
     ]
     logging.info("WEEK: %s, LATEST: %s", week, latest)
-    chart = checkin_chart(week, 800, 600, five_pluses, current_challenge.id)
+    chart = checkin_chart(week, 800, 600, five_pluses, current_challenge.id, current_challenge_week.green)
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
     logging.info("Challenge ID: %s", current_challenge.id)
@@ -375,6 +384,8 @@ def index():
         current_week_index=week_index,
         current_week_start=current_challenge_weeks[week_index - 1][2].strftime("%m/%d"),
         current_week=current_week,
+        viewing_this_week=challenge_name == request.args.get("challenge") == None,
+        green=current_challenge_week.green
     )
 
 
@@ -382,6 +393,10 @@ def index():
 def make_it_green():
     green = random.randint(1, 100) < 21
     logging.info("is is green %s", green)
+    challenge_week = get_current_challenge_week()
+    if (challenge_week.green is None):
+        challenge_week.green = green
+        challenge_week.save()
     return render_template("green.html", green=green)
 
 

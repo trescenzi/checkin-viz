@@ -23,7 +23,7 @@
       }
     </script>
   </head>
-  <body>
+  <body {% if green %}class="green"{% endif %}>
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
       <label for="challenge">Challenge:</label>
     <form id="challengeForm">
@@ -62,11 +62,11 @@
       {% endfor %}
       <button>View Week</button>
     </form>
-    <!-- TODO add this back in
-    <form action="/make-it-green">
-      <button>Make it Green?!</button>
-    </form>
-    -->
+    {% if viewing_this_week and not green %}
+      <form action="/make-it-green">
+        <button>Make it Green?!</button>
+      </form>
+    {% endif %}
     <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
     <hr/>

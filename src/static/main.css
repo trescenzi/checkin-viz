@@ -52,6 +52,17 @@ form select:active {
   }
 }
 
+body.green {
+  background-color: #169450;
+  color: white;
+}
+body.green svg text {
+  fill: white;
+}
+body.green svg rect[fill="white"] {
+  fill: #169450;
+}
+
 table {
   border-collapse: collapse;
   text-align: left;
