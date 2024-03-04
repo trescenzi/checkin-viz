@@ -122,7 +122,7 @@ def checkin_chart(
     )
     knocked_out_names = knocked_out(challenge_id)
     logging.info("knocked out: %s", knocked_out_names)
-    text_color = "black" if green else "white"
+    text_color = "black" if green else ""
     for column, chart in enumerate(data):
         yLabel = chart.name
         is_knocked_out = yLabel in knocked_out_names
