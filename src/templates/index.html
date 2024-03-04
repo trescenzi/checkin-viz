@@ -22,6 +22,14 @@
         challenge.addEventListener('change', showSelectedWeek);
       }
     </script>
+    {% if green %}
+    <style>
+      body.green {
+        background-color: #41ab5d;
+        color: black;
+      }
+    </style>
+    {% endif %}
   </head>
   <body {% if green %}class="green"{% endif %}>
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>

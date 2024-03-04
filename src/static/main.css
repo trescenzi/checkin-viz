@@ -36,31 +36,20 @@ form select:active {
   }
 }
 @media (prefers-color-scheme: dark) {
-  * {
+  body:not(.green) * {
     color: white;
     background-color: #333;
   }
-  form button,
-  form select {
+  body:not(.green) form button,
+  body:not(.green) form select {
     background-color: #333;
   }
-  svg text {
+  body:not(.green) svg text {
     fill: white;
   }
-  svg rect[fill="white"] {
+  body:not(.green) svg rect[fill="white"] {
     fill: #333;
   }
-}
-
-body.green {
-  background-color: #169450;
-  color: white;
-}
-body.green svg text {
-  fill: white;
-}
-body.green svg rect[fill="white"] {
-  fill: #169450;
 }
 
 table {

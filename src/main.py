@@ -84,7 +84,7 @@ def checkin_chart(
     five_pluses: List[str],
     challenge_id,
     green,
-    bye_week
+    bye_week,
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -104,6 +104,8 @@ def checkin_chart(
         "#238b45",
         "#005a32",
     ]
+    green_mode = greens[4]
+    base_color = green_mode if green else "white"
 
     columns = len(data)
     rows = len(data[0].data)
@@ -115,11 +117,12 @@ def checkin_chart(
         dwg.rect(
             insert=(0, 0),
             size=("100%", "100%"),
-            fill="white" if not green else "#169450",
+            fill="white" if not green else green_mode,
         )
     )
     knocked_out_names = knocked_out(challenge_id)
     logging.info("knocked out: %s", knocked_out_names)
+    text_color = "black" if green else "white"
     for column, chart in enumerate(data):
         yLabel = chart.name
         is_knocked_out = yLabel in knocked_out_names
@@ -129,22 +132,23 @@ def checkin_chart(
             font_size=14,
             font_weight="bold" if not is_knocked_out else "normal",
             text_decoration="line-through" if is_knocked_out else "none",
+            fill = text_color
         )
         dwg.add(text1)
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
-            checkedIn = dataUnit.checkedIn
-            fill_color = colors[2] if checkedIn and not is_knocked_out else "white"
+            checkedIn = dataUnit.checkedIn or random.randint(1, 100) > 50
+            fill_color = colors[2] if checkedIn and not is_knocked_out else base_color
             fill_color = colors[0] if is_knocked_out and checkedIn else fill_color
             stroke_color = colors[3] if not is_knocked_out else colors[1]
 
             if five_pluses and yLabel in five_pluses and dataUnit.y != 0:
-                fill_color = greens[4]
+                fill_color = greens[4] if not green else greens[6]
             if five_pluses and x in five_pluses:
                 stroke_color = greens[6]
 
             if column == 0:
-                text = dwg.text(x)
+                text = dwg.text(x, fill=text_color)
                 text.translate(
                     rectW * row + wGap * row + gutter + rectW / 2, gutter - 10
                 )
@@ -176,8 +180,14 @@ def checkin_chart(
 
     if bye_week:
         text = dwg.text("BYE")
-        text.translate(width / 4, height/2)
+        text.translate(width / 4, height / 2)
         text["font-size"] = 200
+        text.fill = text_color
+        dwg.add(text)
+        text = dwg.text("WEEK")
+        text.translate(width / 4 - 50, height / 2 + 175)
+        text["font-size"] = 200
+        text.fill = text_color
         dwg.add(text)
 
     return dwg.tostring()
@@ -355,6 +365,8 @@ def index():
     if week_id is None:
         week_id = current_challenge_week.id
 
+    selected_challenge_week = ChallengeWeeks.get(id=week_id)
+
     checkins = (
         Checkins.select()
         .join(ChallengeWeeks, on=(checkin_predicate))
@@ -372,7 +384,13 @@ def index():
     ]
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
-        week, 800, 600, five_pluses, current_challenge.id, current_challenge_week.green, current_challenge_week.bye_week
+        week,
+        800,
+        600,
+        five_pluses,
+        current_challenge.id,
+        selected_challenge_week.green,
+        selected_challenge_week.bye_week,
     )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
@@ -400,7 +418,7 @@ def index():
         current_week_start=current_challenge_weeks[week_index - 1][2].strftime("%m/%d"),
         current_week=current_week,
         viewing_this_week=challenge_name == request.args.get("challenge") == None,
-        green=current_challenge_week.green,
+        green=selected_challenge_week.green,
     )
 
 
