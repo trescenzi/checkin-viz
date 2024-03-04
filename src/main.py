@@ -132,12 +132,12 @@ def checkin_chart(
             font_size=14,
             font_weight="bold" if not is_knocked_out else "normal",
             text_decoration="line-through" if is_knocked_out else "none",
-            fill = text_color
+            fill=text_color,
         )
         dwg.add(text1)
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
-            checkedIn = dataUnit.checkedIn or random.randint(1, 100) > 50
+            checkedIn = dataUnit.checkedIn
             fill_color = colors[2] if checkedIn and not is_knocked_out else base_color
             fill_color = colors[0] if is_knocked_out and checkedIn else fill_color
             stroke_color = colors[3] if not is_knocked_out else colors[1]
