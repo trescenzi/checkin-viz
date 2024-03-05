@@ -168,13 +168,14 @@ def checkin_chart(
                 rx=2,
                 ry=2,
             )
-            group = dwg.g(
-            )
+            group = dwg.g()
             text = dwg.text(dataUnit.tier)
-            text.translate(row * rectW + row * wGap + gutter + rectW / 2 - 5,
-                           column * rectH + column * hGap + gutter + rectH / 2 + 5)
-            group.add(rect);
-            if (dataUnit.tier):
+            text.translate(
+                row * rectW + row * wGap + gutter + rectW / 2 - 5,
+                column * rectH + column * hGap + gutter + rectH / 2 + 5,
+            )
+            group.add(rect)
+            if dataUnit.tier:
                 group.add(text)
             dwg.add(group)
 
@@ -255,6 +256,7 @@ def points_so_far(challenge_id):
         WHERE
         time >= (SELECT start FROM challenges WHERE id = %s)
         AND time <= (SELECT "end" FROM challenges WHERE id = %s)
+        AND challenger not in (SELECT challenger_id FROM challenger_challenges WHERE challenge_id = %s AND knocked_out = TRUE)
         GROUP BY
         week, name
         ORDER BY
@@ -263,14 +265,46 @@ def points_so_far(challenge_id):
     """
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute(sql, (challenge_id, challenge_id))
+            cur.execute(sql, (challenge_id, challenge_id, challenge_id))
+            return cur.fetchall()
+
+def total_ante(challenge_id):
+    sql = "select sum(ante) from challenger_challenges where challenge_id = %s;" % challenge_id
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            return cur.fetchone()[0]
+
+
+def points_knocked_out(challenge_id):
+    sql = """
+    SELECT SUM(count), name 
+    FROM (SELECT week, name, LEAST(count, 5) as count FROM
+      (SELECT 
+        date_part('week', time) as week, name,
+        COUNT(distinct date_part('day', time)) as count
+        FROM
+        checkins
+        WHERE
+        time >= (SELECT start FROM challenges WHERE id = %s)
+        AND time <= (SELECT "end" FROM challenges WHERE id = %s)
+        AND challenger in (SELECT challenger_id FROM challenger_challenges WHERE challenge_id = %s AND knocked_out = TRUE)
+        GROUP BY
+        week, name
+        ORDER BY
+        week DESC, name
+    ) as sub_query) group by name;
+    """
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, (challenge_id, challenge_id, challenge_id))
             return cur.fetchall()
 
 
 def challenge_data(challenge_id):
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute("select * from challenges where id = %s;", (challenge_id,))
+            cur.execute("select * from challenges where id = %s;" % challenge_id)
             return cur.fetchone()
 
 
@@ -288,13 +322,21 @@ def details():
     )
     logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
+    knocked_out = points_knocked_out(challenge_id)
     points = sorted(points, key=lambda x: -x[0])
+    total_points = sum(x[0] for x in points)
+    ante = total_ante(challenge_id)
+    dollars_per_point = ante / total_points
     logging.info("points: %s", points)
     challenges = get_challenges()
     return render_template(
         "details.html",
         points=points,
+        total_points=total_points,
+        dollars_per_point=dollars_per_point,
+        total_ante=int(dollars_per_point * total_points),
         challenge=challenge,
+        knocked_out=knocked_out,
         weeks=weeksSinceStart,
         challenges=[c for c in challenges if c[3] not in set([1, challenge_id])],
     )
