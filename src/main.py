@@ -56,6 +56,7 @@ class DataUnit(NamedTuple):
     y: int
     checkedIn: bool
     time: datetime
+    tier: str
 
 
 class CheckinChartData(NamedTuple):
@@ -167,16 +168,15 @@ def checkin_chart(
                 rx=2,
                 ry=2,
             )
-            if dataUnit.time:
-                rect.update(
-                    {
-                        "hx-get": "/view-checkin?date="
-                        + dataUnit.time.isoformat()
-                        + "&challenger_id="
-                        + yLabel
-                    }
-                )
-            dwg.add(rect)
+            group = dwg.g(
+            )
+            text = dwg.text(dataUnit.tier)
+            text.translate(row * rectW + row * wGap + gutter + rectW / 2 - 5,
+                           column * rectH + column * hGap + gutter + rectH / 2 + 5)
+            group.add(rect);
+            if (dataUnit.tier):
+                group.add(text)
+            dwg.add(group)
 
     if bye_week:
         text = dwg.text("BYE")
@@ -476,6 +476,11 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                     bool(checkinIndex + 1),
                     (
                         sorted_checkins[checkinIndex].time
+                        if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
+                        else None
+                    ),
+                    (
+                        sorted_checkins[checkinIndex].tier
                         if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
                         else None
                     ),
