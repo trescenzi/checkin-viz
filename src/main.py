@@ -273,9 +273,7 @@ def points_so_far(challenge_id):
 
 
 def total_ante(challenge_id, tier):
-    sql = (
-        "select sum(ante) from challenger_challenges where challenge_id = %s and tier = %s"
-    )
+    sql = "select sum(ante) from challenger_challenges where challenge_id = %s and tier = %s"
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
             cur.execute(sql, (challenge_id, tier))
@@ -331,15 +329,15 @@ def details():
     )
     logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
-    t3 = [x for x in points if x[2] == 'T3']
+    t3 = [x for x in points if x[2] == "T3"]
     t3 = sorted(t3, key=lambda x: -x[0])
-    t2 = [x for x in points if x[2] == 'T2']
+    t2 = [x for x in points if x[2] == "T2"]
     t2 = sorted(t2, key=lambda x: -x[0])
     knocked_out = points_knocked_out(challenge_id)
     total_points_t2 = sum(x[0] for x in t2)
     total_points_t3 = sum(x[0] for x in t3)
-    ante_t2 = total_ante(challenge_id, 'T2')
-    ante_t3 = total_ante(challenge_id, 'T3')
+    ante_t2 = total_ante(challenge_id, "T2")
+    ante_t3 = total_ante(challenge_id, "T3")
     dollars_per_point_t2 = ante_t2 / total_points_t2
     dollars_per_point_t3 = ante_t3 / total_points_t3
 
