@@ -246,54 +246,63 @@ def get_challenges():
 
 def points_so_far(challenge_id):
     sql = """
-    SELECT SUM(count), name 
-    FROM (SELECT week, name, LEAST(count, 5) as count FROM
+    SELECT SUM(count), name, tier 
+    FROM (SELECT week, name, tier, LEAST(count, 5) as count FROM
       (SELECT 
-        date_part('week', time) as week, name,
+        date_part('week', time) as week, name, cc.tier as tier,
         COUNT(distinct date_part('day', time)) as count
         FROM
-        checkins
+        checkins c
+        join challenger_challenges cc on 
+            cc.challenger_id = c.challenger
         WHERE
         time >= (SELECT start FROM challenges WHERE id = %s)
         AND time <= (SELECT "end" FROM challenges WHERE id = %s)
-        AND challenger not in (SELECT challenger_id FROM challenger_challenges WHERE challenge_id = %s AND knocked_out = TRUE)
+        and cc.challenge_id = %s
+        and (cc.knocked_out = FALSE AND cc.ante > 0)
         GROUP BY
-        week, name
+        week, name, cc.tier
         ORDER BY
-        week DESC, name
-    ) as sub_query) group by name;
+        week DESC, name, cc.tier
+    ) as sub_query) group by name, tier order by tier;
     """
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
             cur.execute(sql, (challenge_id, challenge_id, challenge_id))
             return cur.fetchall()
 
-def total_ante(challenge_id):
-    sql = "select sum(ante) from challenger_challenges where challenge_id = %s;" % challenge_id
+
+def total_ante(challenge_id, tier):
+    sql = (
+        "select sum(ante) from challenger_challenges where challenge_id = %s and tier = %s"
+    )
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(sql, (challenge_id, tier))
             return cur.fetchone()[0]
 
 
 def points_knocked_out(challenge_id):
     sql = """
-    SELECT SUM(count), name 
-    FROM (SELECT week, name, LEAST(count, 5) as count FROM
+    SELECT SUM(count), name, tier 
+    FROM (SELECT week, name, tier, LEAST(count, 5) as count FROM
       (SELECT 
-        date_part('week', time) as week, name,
+        date_part('week', time) as week, name, cc.tier as tier,
         COUNT(distinct date_part('day', time)) as count
         FROM
-        checkins
+        checkins c
+        join challenger_challenges cc on 
+            cc.challenger_id = c.challenger
         WHERE
         time >= (SELECT start FROM challenges WHERE id = %s)
         AND time <= (SELECT "end" FROM challenges WHERE id = %s)
-        AND challenger in (SELECT challenger_id FROM challenger_challenges WHERE challenge_id = %s AND knocked_out = TRUE)
+        and cc.challenge_id = %s
+        and (cc.knocked_out = TRUE or cc.ante = 0)
         GROUP BY
-        week, name
+        week, name, cc.tier
         ORDER BY
-        week DESC, name
-    ) as sub_query) group by name;
+        week DESC, name, cc.tier
+    ) as sub_query) group by name, tier;
     """
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
@@ -322,19 +331,31 @@ def details():
     )
     logging.info("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
+    t3 = [x for x in points if x[2] == 'T3']
+    t3 = sorted(t3, key=lambda x: -x[0])
+    t2 = [x for x in points if x[2] == 'T2']
+    t2 = sorted(t2, key=lambda x: -x[0])
     knocked_out = points_knocked_out(challenge_id)
+    total_points_t2 = sum(x[0] for x in t2)
+    total_points_t3 = sum(x[0] for x in t3)
+    ante_t2 = total_ante(challenge_id, 'T2')
+    ante_t3 = total_ante(challenge_id, 'T3')
+    dollars_per_point_t2 = ante_t2 / total_points_t2
+    dollars_per_point_t3 = ante_t3 / total_points_t3
+
     points = sorted(points, key=lambda x: -x[0])
-    total_points = sum(x[0] for x in points)
-    ante = total_ante(challenge_id)
-    dollars_per_point = ante / total_points
     logging.info("points: %s", points)
     challenges = get_challenges()
     return render_template(
         "details.html",
-        points=points,
-        total_points=total_points,
-        dollars_per_point=dollars_per_point,
-        total_ante=int(dollars_per_point * total_points),
+        t2=t2,
+        t3=t3,
+        total_points_t2=total_points_t2,
+        dollars_per_point_t2=dollars_per_point_t2,
+        total_ante_t2=int(dollars_per_point_t2 * total_points_t2),
+        total_points_t3=total_points_t3,
+        dollars_per_point_t3=dollars_per_point_t3,
+        total_ante_t3=int(dollars_per_point_t3 * total_points_t3),
         challenge=challenge,
         knocked_out=knocked_out,
         weeks=weeksSinceStart,
