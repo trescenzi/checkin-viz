@@ -421,7 +421,7 @@ def index():
     current_challenge_week = get_current_challenge_week()
 
     checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
-        Checkins.time < ChallengeWeeks.end
+        Checkins.time < fn.date_add(ChallengeWeeks.end, '1 day')
     )
     if week_id is None:
         week_id = current_challenge_week.id
