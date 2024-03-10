@@ -86,6 +86,7 @@ def checkin_chart(
     challenge_id,
     green,
     bye_week,
+    austin_points,
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -110,8 +111,8 @@ def checkin_chart(
 
     columns = len(data)
     rows = len(data[0].data)
-    rectW = (width - rows * wGap - gutter) / rows
-    rectH = (height - columns * hGap - gutter) / columns
+    rectW = (width - rows * wGap - gutter) / (rows + 1)
+    rectH = (height - columns * hGap - gutter) / (columns + 1)
 
     dwg = svgwrite.Drawing("checkin.svg", size=(width + 1, height), debug=False)
     dwg.add(
@@ -136,6 +137,7 @@ def checkin_chart(
             fill=text_color,
         )
         dwg.add(text1)
+        total = 0;
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
             checkedIn = dataUnit.checkedIn
@@ -149,6 +151,7 @@ def checkin_chart(
                 stroke_color = greens[6]
 
             if column == 0:
+                # add day of week
                 text = dwg.text(x, fill=text_color)
                 text.translate(
                     rectW * row + wGap * row + gutter + rectW / 2, gutter - 10
@@ -176,8 +179,34 @@ def checkin_chart(
             )
             group.add(rect)
             if dataUnit.tier:
+                total += 1.2 if dataUnit.tier == 'T3' else 1
                 group.add(text)
             dwg.add(group)
+
+        if chart.name in austin_points:
+            logging.info(
+                "adding points for %s total %s", chart.name, austin_points[chart.name]
+            )
+            text = dwg.text("%s (%s)" % (round(min(total, 6.0), 4), austin_points[chart.name]))
+            text.translate(
+                rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
+                column * rectH + column * hGap + gutter + rectH / 2,
+            )
+            dwg.add(text)
+
+    # Add Points Label
+    text = dwg.text("Points", fill=text_color)
+    text.translate(
+        rectW * (rows) + wGap * (rows) + gutter + rectW / 2 - 30,
+        gutter - 30,
+    )
+    dwg.add(text)
+    text = dwg.text("(Total)", fill=text_color)
+    text.translate(
+        rectW * (rows) + wGap * (rows) + gutter + rectW / 2 - 30,
+        gutter - 10,
+    )
+    dwg.add(text)
 
     if bye_week:
         text = dwg.text("BYE")
@@ -315,6 +344,28 @@ def challenge_data(challenge_id):
             return cur.fetchone()
 
 
+def points_austin_method(challenge_id):
+    nums = [
+        {"name": n.name, "value": 1.2 if n.tier == "T3" else 1}
+        for n in Checkins.select(Checkins.tier, Checkins.name)
+        .join(
+            ChallengeWeeks,
+            on=(
+                (Checkins.challenge_week == ChallengeWeeks.id)
+                & (ChallengeWeeks.challenge == challenge_id)
+            ),
+        )
+        .group_by(fn.date_trunc("day", Checkins.time), Checkins.tier, Checkins.name)
+        .objects()
+    ]
+    names = set(n["name"] for n in nums)
+    result = {
+        n: round(min(sum(n2["value"] for n2 in nums if n2["name"] == n), 6.0), 4) for n in names
+    }
+    logging.info("Points Austin Method: %s", result)
+    return result
+
+
 @app.route("/details")
 def details():
     challenge_id = request.args.get("challenge_id")
@@ -421,10 +472,12 @@ def index():
     current_challenge_week = get_current_challenge_week()
 
     checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
-        Checkins.time < fn.date_add(ChallengeWeeks.end, '1 day')
+        Checkins.time < fn.date_add(ChallengeWeeks.end, "1 day")
     )
     if week_id is None:
         week_id = current_challenge_week.id
+
+    austin_points = points_austin_method(current_challenge.id)
 
     selected_challenge_week = ChallengeWeeks.get(id=week_id)
 
@@ -452,6 +505,7 @@ def index():
         current_challenge.id,
         selected_challenge_week.green,
         selected_challenge_week.bye_week,
+        austin_points,
     )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")

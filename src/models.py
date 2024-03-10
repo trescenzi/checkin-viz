@@ -75,6 +75,9 @@ class Checkins(BaseModel):
     text = TextField(null=True)
     tier = TextField()
     time = DateTimeField()
+    challenger = ForeignKeyField(
+        column_name="challenger", field="id", model=Challengers, null=True
+    )
 
     class Meta:
         table_name = "checkins"
