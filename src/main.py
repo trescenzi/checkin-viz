@@ -62,6 +62,8 @@ class DataUnit(NamedTuple):
 class CheckinChartData(NamedTuple):
     name: str
     data: List[DataUnit]
+    totalCheckins: int
+    points: float
 
     def tostring(self) -> str:
         return json.dumps({"name": self.name, "data": self.data})
@@ -82,7 +84,6 @@ def checkin_chart(
     data: List[CheckinChartData],
     width: int,
     height: int,
-    five_pluses: List[str],
     challenge_id,
     green,
     bye_week,
@@ -137,7 +138,6 @@ def checkin_chart(
             fill=text_color,
         )
         dwg.add(text1)
-        total = 0;
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
             checkedIn = dataUnit.checkedIn
@@ -145,9 +145,9 @@ def checkin_chart(
             fill_color = colors[0] if is_knocked_out and checkedIn else fill_color
             stroke_color = colors[3] if not is_knocked_out else colors[1]
 
-            if five_pluses and yLabel in five_pluses and dataUnit.y != 0:
+            if chart.totalCheckins >= 5 and dataUnit.y != 0:
                 fill_color = greens[4] if not green else greens[6]
-            if five_pluses and x in five_pluses:
+            if chart.totalCheckins >= 5:
                 stroke_color = greens[6]
 
             if column == 0:
@@ -179,15 +179,16 @@ def checkin_chart(
             )
             group.add(rect)
             if dataUnit.tier:
-                total += 1.2 if dataUnit.tier == 'T3' else 1
                 group.add(text)
             dwg.add(group)
 
         if chart.name in austin_points:
             logging.info(
-                "adding points for %s total %s", chart.name, austin_points[chart.name]
+                "adding points for %s total %s week %s", chart.name, austin_points[chart.name], chart.points
             )
-            text = dwg.text("%s (%s)" % (round(min(total, 6.0), 4), austin_points[chart.name]))
+            text = dwg.text(
+                "%s (%s)" % (round(min(chart.points, 6.0), 4), austin_points[chart.name])
+            )
             text.translate(
                 rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
                 column * rectH + column * hGap + gutter + rectH / 2,
@@ -360,7 +361,8 @@ def points_austin_method(challenge_id):
     ]
     names = set(n["name"] for n in nums)
     result = {
-        n: round(min(sum(n2["value"] for n2 in nums if n2["name"] == n), 6.0), 4) for n in names
+        n: round(min(sum(n2["value"] for n2 in nums if n2["name"] == n), 6.0), 4)
+        for n in names
     }
     logging.info("Points Austin Method: %s", result)
     return result
@@ -491,17 +493,12 @@ def index():
     week, latest = week_heat_map_from_checkins(
         [checkin for checkin in checkins.objects()], current_challenge.id
     )
-    five_pluses = [
-        challenger.name
-        for _, challenger in enumerate(week)
-        if fiveCheckinsThisWeek(challenger.data)
-    ]
+    week = sorted(week, key=lambda x: -x.points)
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
         week,
         800,
         600,
-        five_pluses,
         current_challenge.id,
         selected_challenge_week.green,
         selected_challenge_week.bye_week,
@@ -575,6 +572,8 @@ def week_heat_map_from_checkins(checkins, challenge_id):
     for name in weeks_grouped_by_name:
         sorted_checkins = sortCheckinByWeekdayS(weeks_grouped_by_name[name])
         data = []
+        total_checkins = 0
+        total_points = 0
         for i, weekday in enumerate(weekdays):
             checkinIndex = next(
                 (
@@ -584,6 +583,13 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 ),
                 -1,
             )
+            tier = (sorted_checkins[checkinIndex].tier
+                        if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
+                        else None
+                    )
+            total_checkins += 1 if bool(checkinIndex + 1) else 0
+            if tier:
+                total_points += 1.2 if tier == "T3" else 1
             data.append(
                 DataUnit(
                     weekday,
@@ -594,14 +600,10 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                         if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
                         else None
                     ),
-                    (
-                        sorted_checkins[checkinIndex].tier
-                        if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
-                        else None
-                    ),
+                    tier
                 )
             )
-        heatmap_data.append(CheckinChartData(name, data))
+        heatmap_data.append(CheckinChartData(name, data, total_checkins, total_points))
     return heatmap_data, latest_date[0]
 
 
