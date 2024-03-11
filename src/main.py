@@ -149,6 +149,9 @@ def checkin_chart(
                 fill_color = greens[4] if not green else greens[6]
             if chart.totalCheckins >= 5:
                 stroke_color = greens[6]
+            # gold for 7!
+            if chart.totalCheckins >= 7 and dataUnit.y != 0:
+                fill_color = '#D4AF37'
 
             if column == 0:
                 # add day of week
@@ -184,10 +187,14 @@ def checkin_chart(
 
         if chart.name in austin_points:
             logging.info(
-                "adding points for %s total %s week %s", chart.name, austin_points[chart.name], chart.points
+                "adding points for %s total %s week %s",
+                chart.name,
+                austin_points[chart.name],
+                chart.points,
             )
             text = dwg.text(
-                "%s (%s)" % (round(min(chart.points, 6.0), 4), austin_points[chart.name])
+                "%s (%s)"
+                % (round(min(chart.points, 6.0), 4), austin_points[chart.name])
             )
             text.translate(
                 rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
@@ -583,10 +590,11 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 ),
                 -1,
             )
-            tier = (sorted_checkins[checkinIndex].tier
-                        if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
-                        else None
-                    )
+            tier = (
+                sorted_checkins[checkinIndex].tier
+                if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
+                else None
+            )
             total_checkins += 1 if bool(checkinIndex + 1) else 0
             if tier:
                 total_points += 1.2 if tier == "T3" else 1
@@ -600,7 +608,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                         if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
                         else None
                     ),
-                    tier
+                    tier,
                 )
             )
         heatmap_data.append(CheckinChartData(name, data, total_checkins, total_points))
