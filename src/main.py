@@ -151,7 +151,7 @@ def checkin_chart(
                 stroke_color = greens[6]
             # gold for 7!
             if chart.totalCheckins >= 7 and dataUnit.y != 0:
-                fill_color = '#D4AF37'
+                fill_color = "#D4AF37"
 
             if column == 0:
                 # add day of week
@@ -354,21 +354,21 @@ def challenge_data(challenge_id):
 
 def points_austin_method(challenge_id):
     nums = [
-        {"name": n.name, "value": 1.2 if n.tier == "T3" else 1}
-        for n in Checkins.select(Checkins.tier, Checkins.name)
+        {"name": n.name, "value": 1.2 if n.tier == "T3" else 1, "week": n.challenge_week.id}
+        for n in Checkins.select(Checkins.tier, Checkins.name, Checkins.challenge_week)
         .join(
             ChallengeWeeks,
             on=(
                 (Checkins.challenge_week == ChallengeWeeks.id)
-                & (ChallengeWeeks.challenge == challenge_id)
             ),
         )
-        .group_by(fn.date_trunc("day", Checkins.time), Checkins.tier, Checkins.name)
+        .where(ChallengeWeeks.challenge == challenge_id)
+        .order_by(Checkins.challenge_week)
         .objects()
     ]
     names = set(n["name"] for n in nums)
     result = {
-        n: round(min(sum(n2["value"] for n2 in nums if n2["name"] == n), 6.0), 4)
+        n: sum(round(min(sum(n2["value"] for n2 in week if n2["name"] == n), 6), 4) for w, week in itertools.groupby(nums, key=lambda x: x["week"]))
         for n in names
     }
     logging.info("Points Austin Method: %s", result)
