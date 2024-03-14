@@ -88,6 +88,7 @@ def checkin_chart(
     green,
     bye_week,
     austin_points,
+    achievements
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -183,6 +184,22 @@ def checkin_chart(
             group.add(rect)
             if dataUnit.tier:
                 group.add(text)
+            if dataUnit.time is not None and dataUnit.time.strftime("%H:%M") == achievements[1]:
+                text = dwg.text('🌚')
+                text.translate(
+                    row * rectW + row * wGap + gutter + rectW / 2 + 15,
+                    column * rectH + column * hGap + gutter + rectH / 2 + 5,
+                )
+                group.add(text)
+            if dataUnit.time is not None and dataUnit.time.strftime("%H:%M") == achievements[0]:
+                text = dwg.text('🌞')
+                text.translate(
+                    row * rectW + row * wGap + gutter + rectW / 2 + 15,
+                    column * rectH + column * hGap + gutter + rectH / 2 + 5,
+                )
+                group.add(text)
+
+
             dwg.add(group)
 
         if chart.name in austin_points:
@@ -354,13 +371,15 @@ def challenge_data(challenge_id):
 
 def points_austin_method(challenge_id):
     nums = [
-        {"name": n.name, "value": 1.2 if n.tier == "T3" else 1, "week": n.challenge_week.id}
+        {
+            "name": n.name,
+            "value": 1.2 if n.tier == "T3" else 1,
+            "week": n.challenge_week.id,
+        }
         for n in Checkins.select(Checkins.tier, Checkins.name, Checkins.challenge_week)
         .join(
             ChallengeWeeks,
-            on=(
-                (Checkins.challenge_week == ChallengeWeeks.id)
-            ),
+            on=((Checkins.challenge_week == ChallengeWeeks.id)),
         )
         .where(ChallengeWeeks.challenge == challenge_id)
         .order_by(Checkins.challenge_week)
@@ -368,7 +387,10 @@ def points_austin_method(challenge_id):
     ]
     names = set(n["name"] for n in nums)
     result = {
-        n: sum(round(min(sum(n2["value"] for n2 in week if n2["name"] == n), 6), 4) for w, week in itertools.groupby(nums, key=lambda x: x["week"]))
+        n: sum(
+            round(min(sum(n2["value"] for n2 in week if n2["name"] == n), 6), 4)
+            for w, week in itertools.groupby(nums, key=lambda x: x["week"])
+        )
         for n in names
     }
     logging.info("Points Austin Method: %s", result)
@@ -497,7 +519,7 @@ def index():
     )
 
     logging.info("Week checkins: %s", [checkin.name for checkin in checkins.objects()])
-    week, latest = week_heat_map_from_checkins(
+    week, latest, achievements = week_heat_map_from_checkins(
         [checkin for checkin in checkins.objects()], current_challenge.id
     )
     week = sorted(week, key=lambda x: -x.points)
@@ -510,6 +532,7 @@ def index():
         selected_challenge_week.green,
         selected_challenge_week.bye_week,
         austin_points,
+        achievements
     )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
@@ -576,6 +599,8 @@ def week_heat_map_from_checkins(checkins, challenge_id):
         if name not in weeks_grouped_by_name:
             weeks_grouped_by_name[name] = []
 
+    latest = '00:00:00'
+    earliest = '23:59:59'
     for name in weeks_grouped_by_name:
         sorted_checkins = sortCheckinByWeekdayS(weeks_grouped_by_name[name])
         data = []
@@ -595,6 +620,16 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
                 else None
             )
+            time = (
+                sorted_checkins[checkinIndex].time
+                if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
+                else None
+            )
+            time_hour = time.strftime("%H:%M") if time else None
+            if time_hour and time_hour > latest:
+                latest = time_hour
+            if time_hour and time_hour < earliest:
+                earliest = time_hour
             total_checkins += 1 if bool(checkinIndex + 1) else 0
             if tier:
                 total_points += 1.2 if tier == "T3" else 1
@@ -603,16 +638,12 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                     weekday,
                     checkinIndex + 1,
                     bool(checkinIndex + 1),
-                    (
-                        sorted_checkins[checkinIndex].time
-                        if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
-                        else None
-                    ),
-                    tier,
+                    time,
+                    tier
                 )
             )
         heatmap_data.append(CheckinChartData(name, data, total_checkins, total_points))
-    return heatmap_data, latest_date[0]
+    return heatmap_data, latest_date[0], (earliest, latest)
 
 
 if __name__ == "__main__":
