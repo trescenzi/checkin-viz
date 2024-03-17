@@ -393,7 +393,18 @@ def points_austin_method(challenge_id):
     names = set(n["name"] for n in nums)
     result = {
         n: sum(
-        round(min(sum(sorted((n2["value"] for n2 in week if n2["name"] == n), reverse=True)[:5]), 6), 4)
+            round(
+                min(
+                    sum(
+                        sorted(
+                            (n2["value"] for n2 in week if n2["name"] == n),
+                            reverse=True,
+                        )[:5]
+                    ),
+                    6,
+                ),
+                4,
+            )
             for w, week in itertools.groupby(nums, key=lambda x: x["week"])
         )
         for n in names
@@ -579,6 +590,38 @@ def make_it_green():
         challenge_week.save()
     return render_template("green.html", green=green)
 
+@app.route("/magic")
+def magic():
+    return render_template("magic.html")
+
+@app.route("/add-checkin", methods=["GET", "POST"])
+def add_checkin():
+    logging.info("Add checkin")
+    name = request.form['name'] 
+    tier = request.form['tier']
+    time = datetime.fromisoformat(request.form['time'])
+    day_of_week = time.strftime("%A")
+    challenger = Challengers.select().where(Challengers.name == name).get()
+    challenge_week = ChallengeWeeks.challenge_week_during(time)
+    logging.info("Add checkin: %s", {
+        "name": name,
+        "tier": tier,
+        "time": time,
+        "day_of_week": day_of_week,
+        "challenger": challenger.id,
+        "challenge_week": challenge_week.id
+    })
+    checkin = Checkins.create(name=name,
+                   time=time,
+                   day_of_week=day_of_week,
+                   challenger=challenger,
+                   tier=tier,
+                   text=("%s checkin via magic" % tier),
+                   challenge_week=challenge_week
+    )
+    logging.info("Addind checkin: %s", checkin)
+    return render_template("magic.html")
+
 
 def sortCheckinByWeekdayS(data: List[str]) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x.day_of_week))
@@ -641,7 +684,14 @@ def week_heat_map_from_checkins(checkins, challenge_id):
             data.append(
                 DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1), time, tier)
             )
-        heatmap_data.append(CheckinChartData(name, data, total_checkins, sum(sorted(point_checkins, reverse=True)[:5])))
+        heatmap_data.append(
+            CheckinChartData(
+                name,
+                data,
+                total_checkins,
+                sum(sorted(point_checkins, reverse=True)[:5]),
+            )
+        )
     return heatmap_data, latest_date[0], (earliest, latest)
 
 

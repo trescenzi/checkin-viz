@@ -39,6 +39,29 @@ class ChallengeWeeks(BaseModel):
     start = DateField(null=True)
     week_of_year = IntegerField(null=True)
 
+    def current_challenge_week():
+        now = datetime.now()
+        current_year = int(now.strftime("%Y"))
+        current_week = int(now.strftime("%W"))
+        challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
+            ChallengeWeeks.week_of_year == current_week
+        )
+        current_challenge_week = (
+            ChallengeWeeks.select().where(challenge_week_predicate).get()
+        )
+        return current_challenge_week
+
+    def challenge_week_during(date):
+        current_year = int(date.strftime("%Y"))
+        current_week = int(date.strftime("%W"))
+        challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
+            ChallengeWeeks.week_of_year == current_week
+        )
+        challenge_week = (
+            ChallengeWeeks.select().where(challenge_week_predicate).get()
+        )
+        return challenge_week
+
     class Meta:
         table_name = "challenge_weeks"
 
