@@ -150,6 +150,9 @@ def checkin_chart(
                 fill_color = greens[4] if not green else greens[6]
             if chart.totalCheckins >= 5:
                 stroke_color = greens[6]
+            # lime for first to five
+            if chart.name == achievements[2]:
+                fill_color = "#77dd77"
             # gold for 7!
             if chart.totalCheckins >= 7 and dataUnit.y != 0:
                 fill_color = "#D4AF37"
@@ -375,20 +378,20 @@ def challenge_data(challenge_id):
 
 
 def points_austin_method(challenge_id):
+    checkins_this_week = (
+        Checkins.select(Checkins.tier, Checkins.name, Checkins.challenge_week)
+        .join(ChallengeWeeks, on=((Checkins.challenge_week == ChallengeWeeks.id)))
+        .where(ChallengeWeeks.challenge == challenge_id)
+        .order_by(Checkins.challenge_week)
+        .objects()
+    )
     nums = [
         {
             "name": n.name,
             "value": 1.2 if n.tier == "T3" else 1,
             "week": n.challenge_week.id,
         }
-        for n in Checkins.select(Checkins.tier, Checkins.name, Checkins.challenge_week)
-        .join(
-            ChallengeWeeks,
-            on=((Checkins.challenge_week == ChallengeWeeks.id)),
-        )
-        .where(ChallengeWeeks.challenge == challenge_id)
-        .order_by(Checkins.challenge_week)
-        .objects()
+        for n in checkins_this_week
     ]
     names = set(n["name"] for n in nums)
     result = {
@@ -516,7 +519,9 @@ def index():
             Challenges.select().where(Challenges.name == challenge_name).get()
         )
 
+    logging.info("Current challenge: %s", current_challenge)
     current_challenge_week = get_current_challenge_week()
+    logging.info("Current challenge week: %s", current_challenge_week)
 
     checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
         Checkins.time < fn.date_add(ChallengeWeeks.end, "1 day")
@@ -525,6 +530,8 @@ def index():
         week_id = current_challenge_week.id
 
     austin_points = points_austin_method(current_challenge.id)
+
+    logging.info("Austin points: %s", austin_points)
 
     selected_challenge_week = ChallengeWeeks.get(id=week_id)
 
@@ -590,34 +597,40 @@ def make_it_green():
         challenge_week.save()
     return render_template("green.html", green=green)
 
+
 @app.route("/magic")
 def magic():
     return render_template("magic.html")
 
+
 @app.route("/add-checkin", methods=["GET", "POST"])
 def add_checkin():
     logging.info("Add checkin")
-    name = request.form['name'] 
-    tier = request.form['tier']
-    time = datetime.fromisoformat(request.form['time'])
+    name = request.form["name"]
+    tier = request.form["tier"]
+    time = datetime.fromisoformat(request.form["time"])
     day_of_week = time.strftime("%A")
     challenger = Challengers.select().where(Challengers.name == name).get()
     challenge_week = ChallengeWeeks.challenge_week_during(time)
-    logging.info("Add checkin: %s", {
-        "name": name,
-        "tier": tier,
-        "time": time,
-        "day_of_week": day_of_week,
-        "challenger": challenger.id,
-        "challenge_week": challenge_week.id
-    })
-    checkin = Checkins.create(name=name,
-                   time=time,
-                   day_of_week=day_of_week,
-                   challenger=challenger,
-                   tier=tier,
-                   text=("%s checkin via magic" % tier),
-                   challenge_week=challenge_week
+    logging.info(
+        "Add checkin: %s",
+        {
+            "name": name,
+            "tier": tier,
+            "time": time,
+            "day_of_week": day_of_week,
+            "challenger": challenger.id,
+            "challenge_week": challenge_week.id,
+        },
+    )
+    checkin = Checkins.create(
+        name=name,
+        time=time,
+        day_of_week=day_of_week,
+        challenger=challenger,
+        tier=tier,
+        text=("%s checkin via magic" % tier),
+        challenge_week=challenge_week,
     )
     logging.info("Addind checkin: %s", checkin)
     return render_template("magic.html")
@@ -649,6 +662,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
 
     latest = "00:00:00"
     earliest = "23:59:59"
+    first_to_five = ""
     for name in weeks_grouped_by_name:
         sorted_checkins = sortCheckinByWeekdayS(weeks_grouped_by_name[name])
         data = []
@@ -679,6 +693,8 @@ def week_heat_map_from_checkins(checkins, challenge_id):
             if time_hour and time_hour < earliest:
                 earliest = time_hour
             total_checkins += 1 if bool(checkinIndex + 1) else 0
+            if total_checkins > 4 and first_to_five == "":
+                first_to_five = name
             if tier:
                 point_checkins += [1.2] if tier == "T3" else [1]
             data.append(
@@ -692,7 +708,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 sum(sorted(point_checkins, reverse=True)[:5]),
             )
         )
-    return heatmap_data, latest_date[0], (earliest, latest)
+    return heatmap_data, latest_date[0], (earliest, latest, first_to_five)
 
 
 if __name__ == "__main__":

@@ -57,9 +57,7 @@ class ChallengeWeeks(BaseModel):
         challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
             ChallengeWeeks.week_of_year == current_week
         )
-        challenge_week = (
-            ChallengeWeeks.select().where(challenge_week_predicate).get()
-        )
+        challenge_week = ChallengeWeeks.select().where(challenge_week_predicate).get()
         return challenge_week
 
     class Meta:
