@@ -150,12 +150,12 @@ def checkin_chart(
                 fill_color = greens[4] if not green else greens[6]
             if chart.totalCheckins >= 5:
                 stroke_color = greens[6]
-            # lime for first to five
-            if chart.name == achievements[2]:
-                fill_color = "#77dd77"
             # gold for 7!
-            if chart.totalCheckins >= 7 and dataUnit.y != 0:
+            if chart.totalCheckins >= 7:
                 fill_color = "#D4AF37"
+            # lime for first to five
+            if chart.name == achievements[2][0] and dataUnit.time == achievements[2][1]:
+                fill_color = "#77dd77"
 
             if column == 0:
                 # add day of week
@@ -534,6 +534,7 @@ def index():
     logging.info("Austin points: %s", austin_points)
 
     selected_challenge_week = ChallengeWeeks.get(id=week_id)
+    logging.info("Selected challenge week: %s is green: %s", selected_challenge_week, selected_challenge_week.green)
 
     checkins = (
         Checkins.select()
@@ -662,7 +663,8 @@ def week_heat_map_from_checkins(checkins, challenge_id):
 
     latest = "00:00:00"
     earliest = "23:59:59"
-    first_to_five = ""
+    last_checkin = sorted(checkins, key=lambda x: x.time, reverse=True)[0]
+    first_to_five = (last_checkin.name, last_checkin.time)
     for name in weeks_grouped_by_name:
         sorted_checkins = sortCheckinByWeekdayS(weeks_grouped_by_name[name])
         data = []
@@ -688,17 +690,19 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 else None
             )
             time_hour = time.strftime("%H:%M") if time else None
+            checked_in = bool(checkinIndex + 1)
             if time_hour and time_hour > latest:
                 latest = time_hour
             if time_hour and time_hour < earliest:
                 earliest = time_hour
-            total_checkins += 1 if bool(checkinIndex + 1) else 0
-            if total_checkins > 4 and first_to_five == "":
-                first_to_five = name
+            total_checkins += 1 if checked_in else 0
+            if total_checkins > 4 and time is not None and time < first_to_five[1]:
+                logging.info("new first to five %s %s", name, time)
+                first_to_five = (name, time)
             if tier:
                 point_checkins += [1.2] if tier == "T3" else [1]
             data.append(
-                DataUnit(weekday, checkinIndex + 1, bool(checkinIndex + 1), time, tier)
+                DataUnit(weekday, checkinIndex + 1, checked_in, time, tier)
             )
         heatmap_data.append(
             CheckinChartData(
