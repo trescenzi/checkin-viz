@@ -155,7 +155,7 @@ def checkin_chart(
                 fill_color = "#D4AF37"
             # lime for first to five
             if chart.name == achievements[2][0] and dataUnit.time == achievements[2][1]:
-                fill_color = "#77dd77"
+                fill_color = "#39FF14"
 
             if column == 0:
                 # add day of week
@@ -534,7 +534,11 @@ def index():
     logging.info("Austin points: %s", austin_points)
 
     selected_challenge_week = ChallengeWeeks.get(id=week_id)
-    logging.info("Selected challenge week: %s is green: %s", selected_challenge_week, selected_challenge_week.green)
+    logging.info(
+        "Selected challenge week: %s is green: %s",
+        selected_challenge_week,
+        selected_challenge_week.green,
+    )
 
     checkins = (
         Checkins.select()
@@ -701,9 +705,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 first_to_five = (name, time)
             if tier:
                 point_checkins += [1.2] if tier == "T3" else [1]
-            data.append(
-                DataUnit(weekday, checkinIndex + 1, checked_in, time, tier)
-            )
+            data.append(DataUnit(weekday, checkinIndex + 1, checked_in, time, tier))
         heatmap_data.append(
             CheckinChartData(
                 name,
