@@ -667,8 +667,10 @@ def week_heat_map_from_checkins(checkins, challenge_id):
 
     latest = "00:00:00"
     earliest = "23:59:59"
-    last_checkin = sorted(checkins, key=lambda x: x.time, reverse=True)[0]
-    first_to_five = (last_checkin.name, last_checkin.time)
+    first_to_five = None
+    if len(checkins) > 0:
+        last_checkin = sorted(checkins, key=lambda x: x.time, reverse=True)[0]
+        first_to_five = (last_checkin.name, last_checkin.time)
     for name in weeks_grouped_by_name:
         sorted_checkins = sortCheckinByWeekdayS(weeks_grouped_by_name[name])
         data = []
@@ -700,7 +702,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
             if time_hour and time_hour < earliest:
                 earliest = time_hour
             total_checkins += 1 if checked_in else 0
-            if total_checkins > 4 and time is not None and time < first_to_five[1]:
+            if first_to_five is not None and total_checkins > 4 and time is not None and time < first_to_five[1]:
                 logging.info("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
