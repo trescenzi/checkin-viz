@@ -154,7 +154,7 @@ def checkin_chart(
             if chart.totalCheckins >= 7:
                 fill_color = "#D4AF37"
             # lime for first to five
-            if chart.name == achievements[2][0] and dataUnit.time == achievements[2][1]:
+            if achievements[2] is not None and chart.totalCheckins >= 5 and chart.name == achievements[2][0] and dataUnit.time == achievements[2][1]:
                 fill_color = "#39FF14"
 
             if column == 0:
