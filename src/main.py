@@ -259,7 +259,7 @@ def checkin_chart(
 def write_og_image(svg, week):
     try:
         output = "./static/preview-{week}.png".format(week=week)
-        cairosvg.svg2png(bytestring=svg, write_to=output)
+        cairosvg.svg2png(bytestring=svg.encode("utf-8"), write_to=output)
     except:
         logging.info("Failed to write og image")
 
