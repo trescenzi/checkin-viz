@@ -154,7 +154,12 @@ def checkin_chart(
             if chart.totalCheckins >= 7:
                 fill_color = "#D4AF37"
             # lime for first to five
-            if achievements[2] is not None and chart.totalCheckins >= 5 and chart.name == achievements[2][0] and dataUnit.time == achievements[2][1]:
+            if (
+                achievements[2] is not None
+                and chart.totalCheckins >= 5
+                and chart.name == achievements[2][0]
+                and dataUnit.time == achievements[2][1]
+            ):
                 fill_color = "#39FF14"
 
             if column == 0:
@@ -219,7 +224,7 @@ def checkin_chart(
             )
             text = dwg.text(
                 "%s (%s)"
-                % (round(min(chart.points, 6.0), 4), austin_points[chart.name])
+                % (round(min(chart.points, 6.0), 2), austin_points[chart.name])
             )
             text.translate(
                 rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
@@ -412,7 +417,8 @@ def points_austin_method(challenge_id):
                     4,
                 )
                 for week in weeks
-            ) + 1.2,
+            )
+            + 1.2,
             num_weeks * 6,
         )  # itertools.groupby(nums, key=lambda x: x["week"]))
         for n in names
@@ -707,7 +713,12 @@ def week_heat_map_from_checkins(checkins, challenge_id):
             if time_hour and time_hour < earliest:
                 earliest = time_hour
             total_checkins += 1 if checked_in else 0
-            if first_to_five is not None and total_checkins > 4 and time is not None and time < first_to_five[1]:
+            if (
+                first_to_five is not None
+                and total_checkins > 4
+                and time is not None
+                and time < first_to_five[1]
+            ):
                 logging.info("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
