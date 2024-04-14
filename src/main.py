@@ -394,13 +394,15 @@ def points_austin_method(challenge_id):
         for n in checkins_this_week
     ]
     names = set(n["name"] for n in nums)
+    weeks = [list(week) for w, week in itertools.groupby(nums, key=lambda x: x["week"])]
+    num_weeks = len(list(weeks))
     result = {
-        n: sum(
+        n: min(sum(
             round(
                 min(
                     sum(
                         sorted(
-                            (n2["value"] for n2 in week if n2["name"] == n),
+                            (name["value"] for name in week if name["name"] == n),
                             reverse=True,
                         )[:5]
                     ),
@@ -408,8 +410,7 @@ def points_austin_method(challenge_id):
                 ),
                 4,
             )
-            for w, week in itertools.groupby(nums, key=lambda x: x["week"])
-        )
+            for week in weeks), num_weeks * 6)#itertools.groupby(nums, key=lambda x: x["week"]))
         for n in names
     }
     logging.info("Points Austin Method: %s", result)
@@ -640,10 +641,8 @@ def add_checkin():
     logging.info("Addind checkin: %s", checkin)
     return render_template("magic.html")
 
-
 def sortCheckinByWeekdayS(data: List[str]) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x.day_of_week))
-
 
 def week_heat_map_from_checkins(checkins, challenge_id):
     heatmap_data = []
