@@ -224,7 +224,7 @@ def checkin_chart(
             )
             text = dwg.text(
                 "%s (%s)"
-                % (round(min(chart.points, 6.0), 2), austin_points[chart.name])
+                % (round(min(chart.points, 6.0), 1), austin_points[chart.name])
             )
             text.translate(
                 rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
