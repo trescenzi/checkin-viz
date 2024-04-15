@@ -561,7 +561,7 @@ def index():
     week, latest, achievements = week_heat_map_from_checkins(
         [checkin for checkin in checkins.objects()], current_challenge.id
     )
-    week = sorted(week, key=lambda x: -austin_points[x.name])
+    week = sorted(week, key=lambda x: -austin_points[x.name] if x.name in austin_points else 0)
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
         week,
