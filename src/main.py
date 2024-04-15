@@ -393,7 +393,7 @@ def points_austin_method(challenge_id):
     nums = [
         {
             "name": n.name,
-            "value": 1.2 if n.tier == "T3" else 1,
+            "value": 1.2 if n.tier == "T3" else 1.5 if n.tier == "T4" else 1,
             "week": n.challenge_week.id,
         }
         for n in checkins_this_week
@@ -412,7 +412,7 @@ def points_austin_method(challenge_id):
                                 reverse=True,
                             )[:5]
                         ),
-                        6,
+                        6.3,
                     ),
                     4,
                 )
