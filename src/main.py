@@ -417,8 +417,7 @@ def points_austin_method(challenge_id):
                     4,
                 )
                 for week in weeks
-            )
-            + 1.2,
+            ),
             num_weeks * 6,
         )  # itertools.groupby(nums, key=lambda x: x["week"]))
         for n in names
@@ -722,7 +721,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 logging.info("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
-                point_checkins += [1.2] if tier == "T3" else [1]
+                point_checkins += [1.2] if tier == "T3" else += [1.5] if tier == "T4" else [1]
             data.append(DataUnit(weekday, checkinIndex + 1, checked_in, time, tier))
         heatmap_data.append(
             CheckinChartData(
