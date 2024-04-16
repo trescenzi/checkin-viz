@@ -384,17 +384,19 @@ def challenge_data(challenge_id):
 
 def points_austin_method(challenge_id):
     checkins_this_week = (
-        Checkins.select(Checkins.tier, Checkins.name, Checkins.challenge_week)
+        Checkins.select(fn.Max(Checkins.tier), Checkins.name, Checkins.challenge_week)
         .join(ChallengeWeeks, on=((Checkins.challenge_week == ChallengeWeeks.id)))
         .where(ChallengeWeeks.challenge == challenge_id)
+        .group_by(fn.date(Checkins.time), Checkins.name, Checkins.challenge_week)
         .order_by(Checkins.challenge_week)
         .objects()
     )
     nums = [
         {
             "name": n.name,
-            "value": 1.2 if n.tier == "T3" else 1.5 if n.tier == "T4" else 1,
+            "value": 1.2 if n.max == "T3" else 1.5 if n.max == "T4" else 1,
             "week": n.challenge_week.id,
+            "tier": n.max,
         }
         for n in checkins_this_week
     ]
@@ -560,7 +562,9 @@ def index():
     week, latest, achievements = week_heat_map_from_checkins(
         [checkin for checkin in checkins.objects()], current_challenge.id
     )
-    week = sorted(week, key=lambda x: -austin_points[x.name] if x.name in austin_points else 0)
+    week = sorted(
+        week, key=lambda x: -austin_points[x.name] if x.name in austin_points else 0
+    )
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
         week,
@@ -721,7 +725,9 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 logging.info("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
-                point_checkins += [1.2] if tier == "T3" else [1.5] if tier == "T4" else [1]
+                point_checkins += (
+                    [1.2] if tier == "T3" else [1.5] if tier == "T4" else [1]
+                )
             data.append(DataUnit(weekday, checkinIndex + 1, checked_in, time, tier))
         heatmap_data.append(
             CheckinChartData(
