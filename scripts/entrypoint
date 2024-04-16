@@ -2,4 +2,4 @@
 
 set -e
 cd src
-gunicorn -w 4 -b 0.0.0.0 main:app
+gunicorn -w 4 -b 0.0.0.0:3000 main:app
