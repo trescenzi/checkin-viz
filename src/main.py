@@ -414,13 +414,13 @@ def points_austin_method(challenge_id):
                                 reverse=True,
                             )[:5]
                         ),
-                        6.3,
+                        7.5,
                     ),
                     4,
                 )
                 for week in weeks
             ),
-            num_weeks * 6,
+            num_weeks * 7.5,
         )  # itertools.groupby(nums, key=lambda x: x["week"]))
         for n in names
     }
