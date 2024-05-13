@@ -10,7 +10,7 @@ body {
   padding: 16px;
 }
 svg {
-  margin: 50px auto;
+  margin: 50px auto 0 auto;
   display: block;
 }
 form {

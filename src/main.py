@@ -97,7 +97,7 @@ def checkin_chart(
 
     wGap = 0
     hGap = 20
-    gutter = 80
+    gutter = 85
     colors = ["#f7f7f7", "#cccccc", "#969696", "#636363", "#252525"]
     greens = [
         "#edf8e9",
@@ -114,7 +114,7 @@ def checkin_chart(
     columns = len(data)
     rows = len(data[0].data)
     rectW = (width - rows * wGap - gutter) / (rows + 1)
-    rectH = (height - columns * hGap - gutter) / (columns + 1)
+    rectH = (height - columns * hGap - gutter) / (columns)
 
     dwg = svgwrite.Drawing("checkin.svg", size=(width + 1, height), debug=False)
     dwg.add(
@@ -455,7 +455,9 @@ def details():
     ante_floating = total_ante(challenge_id, "floating")
     ante_t2 = total_ante(challenge_id, "T2")
     ante_t3 = total_ante(challenge_id, "T3")
-    dollars_per_point_floating = ante_floating / total_points_floating if total_points_floating > 0 else 0
+    dollars_per_point_floating = (
+        ante_floating / total_points_floating if total_points_floating > 0 else 0
+    )
     dollars_per_point_t2 = ante_t2 / total_points_t2 if total_points_t2 > 0 else 0
     dollars_per_point_t3 = ante_t3 / total_points_t3 if total_points_t3 > 0 else 0
 

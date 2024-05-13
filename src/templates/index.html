@@ -30,6 +30,15 @@
       }
     </style>
     {% endif %}
+    <style>
+      p {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2em;
+      }
+    </style>
   </head>
   <body {% if green %}class="green"{% endif %}>
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
@@ -77,8 +86,7 @@
     {% endif %}
     <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
-    <hr/>
-    <p><b>Latest as of {{ latest.strftime("%m/%d/%Y %H:%M") }}</b></p>
+    <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
   </body>
 </html>
 
