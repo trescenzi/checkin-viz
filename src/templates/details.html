@@ -23,8 +23,25 @@
               <td>Total Possible</td>
               <td>{{weeks * 5}}</td>
               <td></td>
-              <td>${{total_ante_t2 + total_ante_t3}}</td>
+              <td>${{total_ante_t2 + total_ante_t3 + total_ante_floating}}</td>
             </tr>
+          {% if total_ante_floating > 0 %}
+          <tr>
+            <th>Floating</th>
+            <th></th>
+            <th></th>
+            <th>${{total_ante_floating}}</th>
+          </tr>
+          {% for row in floating %}
+            <tr>
+              <td>{{row.1}}</td>
+              <td>{{row.0}}</td>
+              <td>{{row.2}}</td>
+              <td>{{'$%0.2f' % (dollars_per_point_floating * row.0)}}</td>
+            </tr>
+          {% endfor %}
+          {% endif %}
+          {% if total_ante_t2 > 0 %}
           <tr>
             <th>T2</th>
             <th></th>
@@ -39,6 +56,8 @@
               <td>{{'$%0.2f' % (dollars_per_point_t2 * row.0 if row.2 == 'T2' else dollars_per_point_t3 * row.0)}}</td>
             </tr>
           {% endfor %}
+          {% endif %}
+          {% if total_ante_t3 > 0 %}
           <tr>
             <th>T3</th>
             <th></th>
@@ -53,6 +72,7 @@
               <td>{{'$%0.2f' % (dollars_per_point_t3 * row.0 if row.2 == 'T2' else dollars_per_point_t3 * row.0)}}</td>
             </tr>
           {% endfor %}
+          {% endif %}
           <tr>
             <th> Knocked Out or T1 </th>
             <th></th>
@@ -70,8 +90,6 @@
         </tbody>
       </table>
       <div>{{total_points}}</div>
-      <div>{{dollars_per_point_t2}}</div>
-      <div>{{dollars_per_point_t3}}</div>
     </main>
     <hr />
     {% for challenge in challenges %}

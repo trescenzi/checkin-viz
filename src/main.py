@@ -446,13 +446,18 @@ def details():
     t3 = sorted(t3, key=lambda x: -x[0])
     t2 = [x for x in points if x[2] == "T2"]
     t2 = sorted(t2, key=lambda x: -x[0])
+    floating = [x for x in points if x[2] == "floating"]
+    floating = sorted(floating, key=lambda x: -x[0])
     knocked_out = points_knocked_out(challenge_id)
     total_points_t2 = sum(x[0] for x in t2)
     total_points_t3 = sum(x[0] for x in t3)
+    total_points_floating = sum(x[0] for x in floating)
+    ante_floating = total_ante(challenge_id, "floating")
     ante_t2 = total_ante(challenge_id, "T2")
     ante_t3 = total_ante(challenge_id, "T3")
-    dollars_per_point_t2 = ante_t2 / total_points_t2
-    dollars_per_point_t3 = ante_t3 / total_points_t3
+    dollars_per_point_floating = ante_floating / total_points_floating if total_points_floating > 0 else 0
+    dollars_per_point_t2 = ante_t2 / total_points_t2 if total_points_t2 > 0 else 0
+    dollars_per_point_t3 = ante_t3 / total_points_t3 if total_points_t3 > 0 else 0
 
     points = sorted(points, key=lambda x: -x[0])
     logging.info("points: %s", points)
@@ -461,12 +466,16 @@ def details():
         "details.html",
         t2=t2,
         t3=t3,
+        floating=floating,
         total_points_t2=total_points_t2,
         dollars_per_point_t2=dollars_per_point_t2,
         total_ante_t2=int(dollars_per_point_t2 * total_points_t2),
         total_points_t3=total_points_t3,
         dollars_per_point_t3=dollars_per_point_t3,
         total_ante_t3=int(dollars_per_point_t3 * total_points_t3),
+        total_points_floating=total_points_floating,
+        dollars_per_point_floating=dollars_per_point_floating,
+        total_ante_floating=int(dollars_per_point_floating * total_points_floating),
         challenge=challenge,
         knocked_out=knocked_out,
         weeks=weeksSinceStart,
