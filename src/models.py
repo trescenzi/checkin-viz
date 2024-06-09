@@ -24,6 +24,7 @@ class Challenges(BaseModel):
     end = DateField()
     name = TextField()
     start = DateField()
+    rule_set = IntegerField(null=True)
 
     class Meta:
         table_name = "challenges"

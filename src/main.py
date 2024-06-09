@@ -19,6 +19,7 @@ from models import (
 )
 from peewee import *
 import random
+from rule_sets import score, calculate_total_score
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -87,7 +88,7 @@ def checkin_chart(
     challenge_id,
     green,
     bye_week,
-    austin_points,
+    total_points,
     achievements,
 ):
     if len(data) == 0:
@@ -215,16 +216,16 @@ def checkin_chart(
 
             dwg.add(group)
 
-        if chart.name in austin_points:
+        if chart.name in total_points:
             logging.info(
                 "adding points for %s total %s week %s",
                 chart.name,
-                austin_points[chart.name],
+                total_points[chart.name],
                 chart.points,
             )
             text = dwg.text(
                 "%.1f (%.1f)"
-                % (round(min(chart.points, 7.5), 1), austin_points[chart.name])
+                % (round(chart.points, 1), total_points[chart.name])
             )
             text.translate(
                 rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
@@ -382,52 +383,6 @@ def challenge_data(challenge_id):
             return cur.fetchone()
 
 
-def points_austin_method(challenge_id):
-    checkins_this_week = (
-        Checkins.select(fn.Max(Checkins.tier), Checkins.name, Checkins.challenge_week)
-        .join(ChallengeWeeks, on=((Checkins.challenge_week == ChallengeWeeks.id)))
-        .where(ChallengeWeeks.challenge == challenge_id)
-        .group_by(fn.date(Checkins.time), Checkins.name, Checkins.challenge_week)
-        .order_by(Checkins.challenge_week)
-        .objects()
-    )
-    nums = [
-        {
-            "name": n.name,
-            "value": 1.2 if n.max == "T3" else 1.5 if n.max == "T4" else 1,
-            "week": n.challenge_week.id,
-            "tier": n.max,
-        }
-        for n in checkins_this_week
-    ]
-    names = set(n["name"] for n in nums)
-    weeks = [list(week) for w, week in itertools.groupby(nums, key=lambda x: x["week"])]
-    num_weeks = len(list(weeks))
-    result = {
-        n: min(
-            sum(
-                round(
-                    min(
-                        sum(
-                            sorted(
-                                (name["value"] for name in week if name["name"] == n),
-                                reverse=True,
-                            )[:5]
-                        ),
-                        7.5,
-                    ),
-                    4,
-                )
-                for week in weeks
-            ),
-            num_weeks * 7.5,
-        )  # itertools.groupby(nums, key=lambda x: x["week"]))
-        for n in names
-    }
-    logging.info("Points Austin Method: %s", result)
-    return result
-
-
 @app.route("/details")
 def details():
     challenge_id = request.args.get("challenge_id")
@@ -552,9 +507,9 @@ def index():
     if week_id is None:
         week_id = current_challenge_week.id
 
-    austin_points = points_austin_method(current_challenge.id)
+    total_points = calculate_total_score(current_challenge.id)
 
-    logging.info("Austin points: %s", austin_points)
+    logging.info("Austin points: %s", total_points)
 
     selected_challenge_week = ChallengeWeeks.get(id=week_id)
     logging.info(
@@ -571,10 +526,10 @@ def index():
 
     logging.info("Week checkins: %s", [checkin.name for checkin in checkins.objects()])
     week, latest, achievements = week_heat_map_from_checkins(
-        [checkin for checkin in checkins.objects()], current_challenge.id
+        [checkin for checkin in checkins.objects()], current_challenge.id, current_challenge.rule_set
     )
     week = sorted(
-        week, key=lambda x: -austin_points[x.name] if x.name in austin_points else 0
+        week, key=lambda x: -total_points[x.name] if x.name in total_points else 0
     )
     logging.info("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
@@ -584,7 +539,7 @@ def index():
         current_challenge.id,
         selected_challenge_week.green,
         selected_challenge_week.bye_week,
-        austin_points,
+        total_points,
         achievements,
     )
     write_og_image(chart, week_id)
@@ -670,7 +625,7 @@ def sortCheckinByWeekdayS(data: List[str]) -> List[str]:
     return sorted(data, key=lambda x: weekdays.index(x.day_of_week))
 
 
-def week_heat_map_from_checkins(checkins, challenge_id):
+def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
     heatmap_data = []
     latest_date = None
     with psycopg.connect(conninfo=connection_string) as conn:
@@ -736,9 +691,7 @@ def week_heat_map_from_checkins(checkins, challenge_id):
                 logging.info("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
-                point_checkins += (
-                    [1.2] if tier == "T3" else [1.5] if tier == "T4" else [1]
-                )
+                point_checkins.append(score(tier, rule_set))
             data.append(DataUnit(weekday, checkinIndex + 1, checked_in, time, tier))
         heatmap_data.append(
             CheckinChartData(
