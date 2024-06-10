@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Checkin Tier Calculator{% endblock %}
+{% block head %}
+  {{ super() }}
+  <style>
+    content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      max-width: 1200px;
+    }
+    div {
+      display: flex;
+      flex-direction: column;
+      align-content: center;
+      justify-content: center;
+      font-size: 56px;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      content {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+  </style>
+{% endblock %}
+{% block body %}
+<content>
+  <form style="max-width: 500px">
+    <label for="challengers">Name:</label>
+    <select id="challengers" name="challengers">
+      {% for challenger in challengers %}
+        <option value="{{ challenger.bmr }}">{{ challenger.name }}</option>
+      {% endfor %}
+    </select>
+    <label for="cals">Calories:</label>
+    <input type="number" id="cals" name="cals">
+    <label for="time">Minutes:</label>
+    <input type="number" id="time" name="time">
+    <button>Calculate</button>
+  </form>
+  <div>
+    <span id="tier">Tier: –</span>
+  </div>
+</content>
+<script>
+const form = document.querySelector('form');
+function checkinTier(bmr, cals, time) {
+  const calTier = Math.floor(cals/bmr/7.5*100)-1;
+  const timeTier = Math.floor(time/15-1);
+  return Math.max(calTier, timeTier);
+}
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const bmr  = form.elements.challengers.value;
+  const cals = form.elements.cals.value;
+  const time = form.elements.time.value;
+  tier.innerText = `Tier: ${checkinTier(parseInt(bmr), parseInt(cals), parseInt(time))}`;
+})
+</script>
+{% endblock %}

@@ -67,6 +67,7 @@ class ChallengeWeeks(BaseModel):
 
 class Challengers(BaseModel):
     name = TextField()
+    bmr = IntegerField(null=True)
 
     class Meta:
         table_name = "challengers"

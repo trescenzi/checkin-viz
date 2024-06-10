@@ -1,7 +1,7 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Week {{week}} Checkins</title>
+{% extends "base.html" %}
+{% block title %}Week {{week}} Checkins{% endblock %}
+{% block head %}
+    {{ super() }}
     <meta property="og:title" content="Challenge {{current_challenge}} Week {{current_week_index}}" />
     <meta property="og:description" content="Checkins for week {{current_week_index}}({{current_week_start}})" />
     <meta property="og:url" content="https://checkinviz.tcrez.dev/?week={{week}}&&year={{year}}" />
@@ -9,7 +9,6 @@
       property="og:image"
       content="{{og_path}}"
     />
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
     <script type="text/javascript">
       window.onload = function() {
         challengeWeeks = [...document.querySelectorAll('.challenge_week')]
@@ -30,20 +29,14 @@
       }
     </style>
     {% endif %}
-    <style>
-      p {
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2em;
-      }
-    </style>
-  </head>
-  <body {% if green %}class="green"{% endif %}>
+{% endblock %}
+{% block body_class %}
+  {% if green %}green{% endif %}
+{% endblock %}
+{% block body %}
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
       <label for="challenge">Challenge:</label>
-    <form id="challengeForm">
+    <form class="pure-form" id="challengeForm">
       <select 
         name="challenge"
         id="challenge"
@@ -87,6 +80,4 @@
     <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
     <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
-  </body>
-</html>
-
+{% endblock %}

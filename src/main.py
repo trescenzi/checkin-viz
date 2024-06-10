@@ -318,6 +318,12 @@ def magic():
     return render_template("magic.html")
 
 
+@app.route("/calc")
+def calc():
+    challengers = Challengers.select().where(Challengers.bmr != None).objects()
+    return render_template("calc.html", challengers=challengers)
+
+
 @app.route("/add-checkin", methods=["GET", "POST"])
 def add_checkin():
     logging.info("Add checkin")
@@ -349,7 +355,6 @@ def add_checkin():
     )
     logging.info("Addind checkin: %s", checkin)
     return render_template("magic.html")
-
 
 
 if __name__ == "__main__":

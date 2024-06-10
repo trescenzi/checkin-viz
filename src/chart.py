@@ -339,4 +339,3 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
             )
         )
     return heatmap_data, latest_date[0], (earliest, latest, first_to_five)
-

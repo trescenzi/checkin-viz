@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {% block head %}
+      <title>{% block title %}{% endblock %}</title>
+      <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+      <style>
+        p {
+          margin: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2em;
+        }
+      </style>
+    {% endblock %}
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    {% block body %}{% endblock %}
+  </body>
+</html>

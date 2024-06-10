@@ -14,20 +14,27 @@ svg {
   display: block;
 }
 form {
-  display: inline-block;
-  margin-right: 16px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: auto 1fr;
 }
-form button, select {
-  margin-left: 16px;
+form button, select, input {
   border: 1px solid #636363;
   padding: 8px;
   background-color: white;
   min-width: 100px;
   border-radius: 4px;
+  apperance: none;
+}
+form button {
+  grid-column: 1 / -1;
 }
 form button:active,
 form select:active {
   background-color: #dfdfdf;
+}
+form label {
+  align-self: center;
 }
 @media(hover: hover) {
   form button:hover,
