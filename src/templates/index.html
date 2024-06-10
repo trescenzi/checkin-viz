@@ -37,44 +37,46 @@
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
       <label for="challenge">Challenge:</label>
     <form class="pure-form" id="challengeForm">
-      <select 
-        name="challenge"
-        id="challenge"
-        onchange="this.dataset.chosen = this.value;"
-        data-chosen="{{current_challenge}}"
-      >
-        {% for challenge in challenge_weeks %}
-          <option
-            {{'selected' if challenge[0][0] == current_challenge }}
-            value="{{challenge[0][0]}}"
-            name="{{challenge[0][0]}}"
-          >
-            {{challenge[0][0]}}
-          </option>
-        {% endfor %}
-      </select>
-      {% for challenge in challenge_weeks %}
-        <select
-          name="challenge_week_{{challenge[0][0]}}"
-          id="challenge_{{loop.index}}_weeks"
-          class="challenge_week"
+      <div>
+        <select 
+          name="challenge"
+          id="challenge"
+          onchange="this.dataset.chosen = this.value;"
+          data-chosen="{{current_challenge}}"
         >
-          {% for week in challenge %}
+          {% for challenge in challenge_weeks %}
             <option
-              {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
-              value="{{week[1]}}"
-              name="{{loop.index}}"
+              {{'selected' if challenge[0][0] == current_challenge }}
+              value="{{challenge[0][0]}}"
+              name="{{challenge[0][0]}}"
             >
-              Week: {{loop.index}}
+              {{challenge[0][0]}}
             </option>
           {% endfor %}
         </select>
-      {% endfor %}
-      <button>View Week</button>
+        {% for challenge in challenge_weeks %}
+          <select
+            name="challenge_week_{{challenge[0][0]}}"
+            id="challenge_{{loop.index}}_weeks"
+            class="challenge_week"
+          >
+            {% for week in challenge %}
+              <option
+                {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
+                value="{{week[1]}}"
+                name="{{loop.index}}"
+              >
+                Week: {{loop.index}}
+              </option>
+            {% endfor %}
+          </select>
+        {% endfor %}
+        <button>View Week</button>
+      </div>
     </form>
     {% if viewing_this_week and green is none %}
       <form action="/make-it-green">
-        <button>Make it Green?!</button>
+        <div> <button>Make it Green?!</button></div>
       </form>
     {% endif %}
     <a href="/details?challenge_id={{challenge_id}}">Details</a>
