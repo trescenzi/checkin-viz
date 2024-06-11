@@ -23,6 +23,7 @@
       }
     }
   </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 {% endblock %}
 {% block body %}
 <content>
@@ -34,9 +35,9 @@
       {% endfor %}
     </select>
     <label for="cals">Calories:</label>
-    <input type="number" id="cals" name="cals">
+    <input pattern="[0-9]*" type="number" id="cals" name="cals" required>
     <label for="time">Minutes:</label>
-    <input type="number" id="time" name="time">
+    <input pattern="[0-9]*" type="number" id="time" name="time" required>
     <button>Calculate</button>
   </form>
   <div>

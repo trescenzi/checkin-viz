@@ -43,6 +43,9 @@ form label {
   }
 }
 @media (prefers-color-scheme: dark) {
+  html {
+    background-color: #333;
+  }
   body:not(.green) * {
     color: white;
     background-color: #333;
