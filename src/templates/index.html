@@ -33,6 +33,9 @@
 {% block body_class %}
   {% if green %}green{% endif %}
 {% endblock %}
+{% block nav %}
+<li><a href="/details?challenge_id={{challenge_id}}">Details</a></li>
+{% endblock %}
 {% block body %}
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
       <label for="challenge">Challenge:</label>
@@ -79,7 +82,6 @@
         <div> <button>Make it Green?!</button></div>
       </form>
     {% endif %}
-    <a href="/details?challenge_id={{challenge_id}}">Details</a>
     {{ svg | safe }}
     <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
 {% endblock %}

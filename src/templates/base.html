@@ -16,6 +16,15 @@
     {% endblock %}
   </head>
   <body class="{% block body_class %}{% endblock %}">
+    <header>
+      <h2><a href="/">CGF Fitness Challenge</a></h2>
+      <nav>
+        <ul>
+          <li><a href="/calc">Calculator</a></li>
+          {%block nav%}{%endblock%}
+        </ul>
+      </nav>
+    </header>
     {% block body %}{% endblock %}
   </body>
 </html>

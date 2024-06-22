@@ -1,6 +1,10 @@
 * {
   box-sizing: border-box;
 }
+a:visited, a {
+  color: black; 
+  font-weight: normal;
+}
 html, body {
   margin: 0;
   padding: 0;
@@ -41,6 +45,9 @@ form label {
   form select:hover {
     cursor: pointer;
   }
+  a:hover {
+    font-weight: bold;
+  }
 }
 @media (prefers-color-scheme: dark) {
   html {
@@ -75,6 +82,29 @@ th, td {
 th {
   background-color: #41ab5d;
   color: white;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #636363;
+  margin-bottom: 24px;
+}
+header nav {
+  flex: 1;
+  text-align: right;
+}
+header h2 {
+  font-size: 24px;
+}
+header a {
+  text-decoration: none;
+}
+header li {
+  list-style: none;
+  display: inline-block;
+  margin-right: 24px;
+  font-size: 18px;
 }
 
 @media(hover: hover){
