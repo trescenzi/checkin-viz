@@ -24,15 +24,11 @@
   <body>
     <form id="add-checkin" action="/add-checkin" method="post">
       <label for="tier">Tier: </label>
-      <select id="tier" name="tier">
-        <option value="T1">Tier 1</option>
-        <option value="T2">Tier 2</option>
-        <option value="T3">Tier 3</option>
-      </select>
+      <input required type="number" pattern="[0-9]*" id="tier" name="tier" />
       <label for="name">Name: </label>
-      <input type="text" id="name" name="name" />
+      <input required type="text" id="name" name="name" />
       <label for="time">Time:</label>
-      <input type="datetime-local" id="time" name="time" />
+      <input required type="datetime-local" id="time" name="time" />
       <button>Add Checkin</button>
   </body>
 </html>

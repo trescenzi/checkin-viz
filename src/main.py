@@ -354,7 +354,7 @@ def add_checkin():
         time=time,
         day_of_week=day_of_week,
         challenger=challenger,
-        tier=tier,
+        tier=("T%s" % tier),
         text=("%s checkin via magic" % tier),
         challenge_week=challenge_week,
     )
