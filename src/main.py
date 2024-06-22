@@ -325,8 +325,9 @@ def challenger(challenger):
 
 @app.route("/calc")
 def calc():
+    name = request.args.get("name")
     challengers = Challengers.select().where(Challengers.bmr != None).objects()
-    return render_template("calc.html", challengers=challengers)
+    return render_template("calc.html", challengers=challengers, name=name)
 
 
 @app.route("/add-checkin", methods=["GET", "POST"])

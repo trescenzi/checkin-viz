@@ -31,7 +31,12 @@
     <label for="challengers">Name:</label>
     <select id="challengers" name="challengers">
       {% for challenger in challengers %}
-        <option value="{{ challenger.bmr }}">{{ challenger.name }}</option>
+        <option 
+          value="{{ challenger.bmr }}"
+          {{'selected' if name == challenger.name}}
+        >
+          {{ challenger.name }}
+        </option>
       {% endfor %}
     </select>
     <label for="cals">Calories:</label>

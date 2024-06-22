@@ -120,7 +120,7 @@ def checkin_chart(
     for column, chart in enumerate(data):
         yLabel = chart.name
         is_knocked_out = yLabel in knocked_out_names
-        a = svgwrite.container.Hyperlink("/challenger/%s" % chart.name)
+        a = svgwrite.container.Hyperlink("/challenger/%s" % chart.name, target="_self")
         text1 = dwg.text(
             yLabel,
             insert=(0, rectH * column + hGap * column + gutter + rectH / 2),
