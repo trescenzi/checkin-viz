@@ -120,6 +120,7 @@ def checkin_chart(
     for column, chart in enumerate(data):
         yLabel = chart.name
         is_knocked_out = yLabel in knocked_out_names
+        a = svgwrite.container.Hyperlink("/challenger/%s" % chart.name)
         text1 = dwg.text(
             yLabel,
             insert=(0, rectH * column + hGap * column + gutter + rectH / 2),
@@ -128,7 +129,8 @@ def checkin_chart(
             text_decoration="line-through" if is_knocked_out else "none",
             fill=text_color,
         )
-        dwg.add(text1)
+        a.add(text1)
+        dwg.add(a)
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
             checkedIn = dataUnit.checkedIn

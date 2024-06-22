@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Checkin Tier Calculator{% endblock %}
+{% block head %}
+  {{ super() }}
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+{% endblock %}
+{% block body %}
+<h1>{{name}} Tier Chart</h1><a href="/calc">Use Calculator</a>
+<table>
+  <thead>
+    <tr>
+      <th>Tier</th>
+      <th>Calories Burnt</th>
+      <th>Time Spent</th>
+      <th>Points</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for n in range(1,21) %}
+    <tr>
+      <td>{{n}}</td>
+      <!-- Calc the percent multiply by bmr -->
+      <td>{{((((7.5*n)/100)+0.075) * bmr)|round|int}}</td>
+      <!-- Calc the time -->
+      <td>{{(15*(1+n))|round|int}}</td>
+      <!-- Calc the points -->
+      <td>{{'%0.1f' % (0.9+0.1*n)}}</td>
+    </tf>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

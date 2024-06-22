@@ -317,6 +317,11 @@ def make_it_green():
 def magic():
     return render_template("magic.html")
 
+@app.route("/challenger/<challenger>")
+def challenger(challenger):
+    c = Challengers.get(Challengers.name == challenger)
+    logging.info("Challenger: %s", c.name)
+    return render_template("challenger.html", name=challenger, bmr=c.bmr)
 
 @app.route("/calc")
 def calc():
