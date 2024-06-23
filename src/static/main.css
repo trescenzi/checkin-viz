@@ -7,6 +7,9 @@ a:visited, a {
 svg a {
   text-decoration: underline;
 }
+svg a:link { color: #0000EE; }
+svg a:visited { color: #551A8B; }
+svg a:link:active, svg a:visited:active { color: #FF0000; }
 html, body {
   margin: 0;
   padding: 0;

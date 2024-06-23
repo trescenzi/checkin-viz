@@ -9,7 +9,6 @@
       property="og:image"
       content="{{og_path}}"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <script type="text/javascript">
       window.onload = function() {
         challengeWeeks = [...document.querySelectorAll('.challenge_week')]
@@ -39,7 +38,7 @@
         display: grid;
         grid-template-columns: auto 1fr;
       }
-      @media(max-width: 600px) {
+      @media(min-height: 800px) {
         .content {
           grid-template-columns: unset;
         }
@@ -94,7 +93,7 @@
             {% endfor %}
             <button>View Week</button>
         </form>
-        {% if viewing_this_week and green is none or True %}
+        {% if viewing_this_week and green is none %}
           <form action="/make-it-green">
             <button>Make it Green?!</button>
           </form>
