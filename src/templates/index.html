@@ -9,26 +9,42 @@
       property="og:image"
       content="{{og_path}}"
     />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <script type="text/javascript">
       window.onload = function() {
         challengeWeeks = [...document.querySelectorAll('.challenge_week')]
         function showSelectedWeek() {
           challengeWeeks.forEach(w => w.remove());
           const selectedWeek = challengeWeeks.find(w => w.name.includes(challenge.dataset.chosen))
-          challenge.after(selectedWeek);
+          challengeWeekLabel.after(selectedWeek);
         }
         showSelectedWeek();
         challenge.addEventListener('change', showSelectedWeek);
       }
     </script>
     {% if green %}
+      <style>
+        body.green {
+          background-color: #41ab5d;
+          color: black;
+        }
+      </style>
+    {% endif %}
     <style>
-      body.green {
-        background-color: #41ab5d;
-        color: black;
+      form {
+        width: 350px;
+        margin-bottom: 30px;
+      }
+      .content {
+        display: grid;
+        grid-template-columns: auto 1fr;
+      }
+      @media(max-width: 600px) {
+        .content {
+          grid-template-columns: unset;
+        }
       }
     </style>
-    {% endif %}
 {% endblock %}
 {% block body_class %}
   {% if green %}green{% endif %}
@@ -38,50 +54,55 @@
 {% endblock %}
 {% block body %}
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
-      <label for="challenge">Challenge:</label>
-    <form class="pure-form" id="challengeForm">
+    <div class="content">
       <div>
-        <select 
-          name="challenge"
-          id="challenge"
-          onchange="this.dataset.chosen = this.value;"
-          data-chosen="{{current_challenge}}"
-        >
-          {% for challenge in challenge_weeks %}
-            <option
-              {{'selected' if challenge[0][0] == current_challenge }}
-              value="{{challenge[0][0]}}"
-              name="{{challenge[0][0]}}"
+        <form class="pure-form" id="challengeForm">
+          <label for="challenge">Challenge:</label>
+            <select 
+              name="challenge"
+              id="challenge"
+              onchange="this.dataset.chosen = this.value;"
+              data-chosen="{{current_challenge}}"
             >
-              {{challenge[0][0]}}
-            </option>
-          {% endfor %}
-        </select>
-        {% for challenge in challenge_weeks %}
-          <select
-            name="challenge_week_{{challenge[0][0]}}"
-            id="challenge_{{loop.index}}_weeks"
-            class="challenge_week"
-          >
-            {% for week in challenge %}
-              <option
-                {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
-                value="{{week[1]}}"
-                name="{{loop.index}}"
+              {% for challenge in challenge_weeks %}
+                <option
+                  {{'selected' if challenge[0][0] == current_challenge }}
+                  value="{{challenge[0][0]}}"
+                  name="{{challenge[0][0]}}"
+                >
+                  {{challenge[0][0]}}
+                </option>
+              {% endfor %}
+            </select>
+            <label for="challenge_week" id="challengeWeekLabel">Week:</label>
+            {% for challenge in challenge_weeks %}
+              <select
+                name="challenge_week_{{challenge[0][0]}}"
+                id="challenge_{{loop.index}}_weeks"
+                class="challenge_week"
               >
-                Week: {{loop.index}}
-              </option>
+                {% for week in challenge %}
+                  <option
+                    {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
+                    value="{{week[1]}}"
+                    name="{{loop.index}}"
+                  >
+                    Week: {{loop.index}}
+                  </option>
+                {% endfor %}
+              </select>
             {% endfor %}
-          </select>
-        {% endfor %}
-        <button>View Week</button>
+            <button>View Week</button>
+        </form>
+        {% if viewing_this_week and green is none or True %}
+          <form action="/make-it-green">
+            <button>Make it Green?!</button>
+          </form>
+        {% endif %}
       </div>
-    </form>
-    {% if viewing_this_week and green is none %}
-      <form action="/make-it-green">
-        <div> <button>Make it Green?!</button></div>
-      </form>
-    {% endif %}
-    {{ svg | safe }}
-    <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
+      <div>
+        {{ svg | safe }}
+        <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
+      </div>
+    </div>
 {% endblock %}

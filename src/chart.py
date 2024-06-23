@@ -126,7 +126,7 @@ def checkin_chart(
             insert=(0, rectH * column + hGap * column + gutter + rectH / 2),
             font_size=14,
             text_decoration="line-through" if is_knocked_out else "",
-            fill="currentcolor"
+            fill="currentcolor",
         )
         a.add(text1)
         dwg.add(a)
