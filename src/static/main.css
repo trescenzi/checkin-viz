@@ -2,8 +2,10 @@
   box-sizing: border-box;
 }
 a:visited, a {
-  color: black; 
   font-weight: normal;
+}
+svg a {
+  text-decoration: underline;
 }
 html, body {
   margin: 0;

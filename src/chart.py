@@ -125,9 +125,8 @@ def checkin_chart(
             yLabel,
             insert=(0, rectH * column + hGap * column + gutter + rectH / 2),
             font_size=14,
-            font_weight="bold" if not is_knocked_out else "normal",
-            text_decoration="line-through" if is_knocked_out else "none",
-            fill=text_color,
+            text_decoration="line-through" if is_knocked_out else "",
+            fill="currentcolor"
         )
         a.add(text1)
         dwg.add(a)
