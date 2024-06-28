@@ -19,6 +19,7 @@ from peewee import *
 import random
 from rule_sets import calculate_total_score
 from chart import checkin_chart, week_heat_map_from_checkins, write_og_image
+import hashlib
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -370,6 +371,41 @@ def add_checkin():
     )
     logging.info("Addind checkin: %s", checkin)
     return render_template("magic.html")
+
+@app.route("/mail", methods=["POST"])
+def mail():
+    fromaddress = request.json['from']['text']
+    logging.info('weve got mail from %s', fromaddress)
+
+    sessionmta = request.json['session']['mta']
+    if (sessionmta != 'mx1.forwardemail.net' and sessionmta != 'mx2.forwardemail.net'):
+        logging.error('not from mx1/2, %s', sessionmta)
+        return "1", 200
+
+    attachments = request.json['attachments']
+    first_text_plain = next((attachment for attachment in attachments if attachment['contentType'] == 'text/plain'), None)
+    if (first_text_plain is None):
+        return "not_text", 200
+
+    content = first_text_plain['content']
+    checksum = first_text_plain['checksum']
+
+    if (content['type'] != 'Buffer'):
+        logging.error('non buffer data %s', content['type'])
+        return "2", 200
+
+    bdata = bytearray(content['data'])
+    md5 = hashlib.md5()
+    md5.update(bdata)
+    buffer_checksum = md5.hexdigest()
+
+    if (checksum != buffer_checksum):
+        logging.error('checksum mismatch %s %s', buffer_checksum, checksum)
+        return "3", 200
+
+    logging.info('content %s', bdata.decode('utf-8'))
+
+    return "success", 200
 
 
 if __name__ == "__main__":
