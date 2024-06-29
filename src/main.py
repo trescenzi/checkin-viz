@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, date
 import json
 from flask import Flask, render_template, request, url_for
 import psycopg
+from psycopg.rows import namedtuple_row
 import logging
 from models import (
     Checkins,
@@ -193,6 +194,17 @@ def get_current_challenge_week():
     return current_challenge_week
 
 
+def checkins_this_week(challenge_week_id):
+    sql = """
+    select name, day_of_week, tier, time at time zone 'America/New_York' as time from checkins c
+    join challenge_weeks cw on cw.id = c.challenge_week_id
+    where cw.id = %s
+    """
+    with psycopg.connect(conninfo=connection_string, row_factory=namedtuple_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, [challenge_week_id])
+            return cur.fetchall()
+
 @app.route("/")
 def index():
     challenge_name = request.args.get("challenge")
@@ -246,15 +258,10 @@ def index():
         selected_challenge_week.green,
     )
 
-    checkins = (
-        Checkins.select()
-        .join(ChallengeWeeks, on=(checkin_predicate))
-        .where(ChallengeWeeks.id == week_id)
-    )
-
-    logging.info("Week checkins: %s", [checkin.name for checkin in checkins.objects()])
+    checkins = checkins_this_week(week_id)
+    logging.info("Week checkins: %s", [checkin.name for checkin in checkins])
     week, latest, achievements = week_heat_map_from_checkins(
-        [checkin for checkin in checkins.objects()],
+        checkins,
         current_challenge.id,
         current_challenge.rule_set,
     )
