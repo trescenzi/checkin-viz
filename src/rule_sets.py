@@ -1,20 +1,10 @@
-from models import (
-    Checkins,
-    Challenges,
-    ChallengeWeeks,
-    Challengers,
-    ChallengerChallenges,
-)
-from peewee import *
 import itertools
 import os
 import logging
+from helpers import fetchall
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level="INFO")
-pwlogger = logging.getLogger("peewee")
-pwlogger.addHandler(logging.StreamHandler())
-pwlogger.setLevel(logging.DEBUG)
 
 
 def score(tier, rule_set):
@@ -48,33 +38,35 @@ def version_2_score(tier):
 
 
 def calculate_total_score(challenge_id):
-    checkins_this_challenge = (
-        Checkins.select(
-            fn.Max(Checkins.tier),
-            Checkins.name,
-            Checkins.challenge_week,
-            Challenges.rule_set,
-        )
-        .join(ChallengeWeeks, on=((Checkins.challenge_week == ChallengeWeeks.id)))
-        .where(ChallengeWeeks.challenge == challenge_id)
-        .join(Challenges, on=((Challenges.id == ChallengeWeeks.challenge)))
-        .where(Challenges.id == challenge_id)
-        .group_by(
-            fn.date(Checkins.time),
-            Checkins.name,
-            Checkins.challenge_week,
-            Challenges.rule_set,
-        )
-        .order_by(Checkins.challenge_week)
-        .objects()
-    )
+    query = """
+        select 
+            Max(checkins.tier) as max,
+            checkins.name,
+            checkins.challenge_week_id,
+            challenges.rule_set
+        from checkins
+        join challenge_weeks
+            on checkins.challenge_week_id = challenge_weeks.id
+        join challenges
+            on challenge_weeks.challenge_id = challenges.id
+        where 
+           challenge_weeks.challenge_id = %s
+           and challenges.id = %s
+        group by
+            date(checkins.time at time zone 'America/New_York'),
+            checkins.name,
+            checkins.challenge_week_id,
+            challenges.rule_set
+        order by checkins.challenge_week_id
+    """
+    checkins_this_challenge = fetchall(query, (challenge_id, challenge_id))
     version = checkins_this_challenge[0].rule_set
     logging.info("Version: %s", version)
     nums = [
         {
             "name": n.name,
             "value": score(n.max, version),
-            "week": n.challenge_week.id,
+            "week": n.challenge_week_id,
             "tier": n.max,
         }
         for n in checkins_this_challenge

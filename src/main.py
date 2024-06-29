@@ -20,6 +20,7 @@ import random
 from rule_sets import calculate_total_score
 from chart import checkin_chart, week_heat_map_from_checkins, write_og_image
 import hashlib
+from helpers import fetchall
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -201,10 +202,8 @@ def checkins_this_week(challenge_week_id):
     join challenge_weeks cw on cw.id = c.challenge_week_id
     where cw.id = %s
     """
-    with psycopg.connect(conninfo=connection_string, row_factory=namedtuple_row) as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, [challenge_week_id])
-            return cur.fetchall()
+    return fetchall(sql, [challenge_week_id])
+
 
 @app.route("/")
 def index():
