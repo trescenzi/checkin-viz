@@ -20,11 +20,13 @@ import random
 from rule_sets import calculate_total_score
 from chart import checkin_chart, week_heat_map_from_checkins, write_og_image
 import hashlib
-from helpers import fetchall
+from helpers import fetchall, fetchone, with_psycopg
+import re
+import pytz
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
-logging.basicConfig(level="INFO")
+logging.basicConfig(level=LOGLEVEL)
 pwlogger = logging.getLogger("peewee")
 pwlogger.addHandler(logging.StreamHandler())
 pwlogger.setLevel(logging.DEBUG)
@@ -38,7 +40,7 @@ logging.info(connection_string)
 def get_challenges():
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            logging.info("select * from challenges")
+            logging.debug("select * from challenges")
             cur.execute("select * from challenges")
             return cur.fetchall()
 
@@ -118,7 +120,7 @@ def challenge_data(challenge_id):
 def details():
     challenge_id = request.args.get("challenge_id")
     challenge = challenge_data(challenge_id)
-    logging.info("Challenge ID: %s %s", challenge_id, challenge)
+    logging.debug("Challenge ID: %s %s", challenge_id, challenge)
     weeksSinceStart = (
         min(
             math.ceil((date.today() - challenge[1]).days / 7),
@@ -126,7 +128,7 @@ def details():
         )
         - challenge[4]
     )
-    logging.info("Weeks since start: %s", weeksSinceStart)
+    logging.debug("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
     t3 = [x for x in points if x[2] == "T3"]
     t3 = sorted(t3, key=lambda x: -x[0])
@@ -148,7 +150,7 @@ def details():
     dollars_per_point_t3 = ante_t3 / total_points_t3 if total_points_t3 > 0 else 0
 
     points = sorted(points, key=lambda x: -x[0])
-    logging.info("points: %s", points)
+    logging.debug("points: %s", points)
     challenges = get_challenges()
     return render_template(
         "details.html",
@@ -208,9 +210,9 @@ def checkins_this_week(challenge_week_id):
 @app.route("/")
 def index():
     challenge_name = request.args.get("challenge")
-    logging.info("Challenge requested: %s", challenge_name)
+    logging.debug("Challenge requested: %s", challenge_name)
     week_id = request.args.get("challenge_week_%s" % challenge_name)
-    logging.info("Week requested: %s", week_id)
+    logging.debug("Week requested: %s", week_id)
     now = datetime.now()
     current_year = int(now.strftime("%Y"))
     current_week = int(now.strftime("%W"))
@@ -218,7 +220,7 @@ def index():
 
     current_challenge = None
     if challenge_name is None:
-        logging.info(
+        logging.debug(
             "Getting challenge for current week dates: %s %s %s",
             current_year,
             current_week,
@@ -232,14 +234,14 @@ def index():
             .get()
         )
     else:
-        logging.info("Getting challenge with name: %s", challenge_name)
+        logging.debug("Getting challenge with name: %s", challenge_name)
         current_challenge = (
             Challenges.select().where(Challenges.name == challenge_name).get()
         )
 
-    logging.info("Current challenge: %s", current_challenge)
+    logging.debug("Current challenge: %s", current_challenge)
     current_challenge_week = get_current_challenge_week()
-    logging.info("Current challenge week: %s", current_challenge_week)
+    logging.debug("Current challenge week: %s", current_challenge_week)
 
     checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
         Checkins.time < fn.date_add(ChallengeWeeks.end, "1 day")
@@ -249,17 +251,17 @@ def index():
 
     total_points = calculate_total_score(current_challenge.id)
 
-    logging.info("Austin points: %s", total_points)
+    logging.debug("Austin points: %s", total_points)
 
     selected_challenge_week = ChallengeWeeks.get(id=week_id)
-    logging.info(
+    logging.debug(
         "Selected challenge week: %s is green: %s",
         selected_challenge_week,
         selected_challenge_week.green,
     )
 
     checkins = checkins_this_week(week_id)
-    logging.info("Week checkins: %s", [checkin.name for checkin in checkins])
+    logging.debug("Week checkins: %s", [checkin.name for checkin in checkins])
     week, latest, achievements = week_heat_map_from_checkins(
         checkins,
         current_challenge.id,
@@ -268,7 +270,7 @@ def index():
     week = sorted(
         week, key=lambda x: -total_points[x.name] if x.name in total_points else 0
     )
-    logging.info("WEEK: %s, LATEST: %s", week, latest)
+    logging.debug("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
         week,
         800,
@@ -281,16 +283,16 @@ def index():
     )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
-    logging.info("Challenge ID: %s", current_challenge.id)
+    logging.debug("Challenge ID: %s", current_challenge.id)
     cws = challenge_weeks()
-    logging.info("Weeks: %s", cws)
+    logging.debug("Weeks: %s", cws)
     current_challenge_weeks = next(v for v in cws if v[0][0] == current_challenge.name)
-    logging.info("Current week index: %s", current_challenge_weeks)
+    logging.debug("Current week index: %s", current_challenge_weeks)
     week_index = (
         next(i for i, v in enumerate(current_challenge_weeks) if v[1] == int(week_id))
         + 1
     )
-    logging.info("Week Index: %s, Week ID: %s", week_index, week_id)
+    logging.debug("Week Index: %s, Week ID: %s", week_index, week_id)
     return render_template(
         "index.html",
         svg=chart,
@@ -312,7 +314,7 @@ def index():
 @app.route("/make-it-green")
 def make_it_green():
     green = random.randint(1, 100) < 21
-    logging.info("is is green %s", green)
+    logging.debug("is is green %s", green)
     challenge_week = get_current_challenge_week()
     if challenge_week.green is None:
         challenge_week.green = green
@@ -328,7 +330,7 @@ def magic():
 @app.route("/challenger/<challenger>")
 def challenger(challenger):
     c = Challengers.get(Challengers.name == challenger)
-    logging.info("Challenger: %s", c.name)
+    logging.debug("Challenger: %s", c.name)
     return render_template("challenger.html", name=challenger, bmr=c.bmr)
 
 
@@ -341,14 +343,14 @@ def calc():
 
 @app.route("/add-checkin", methods=["GET", "POST"])
 def add_checkin():
-    logging.info("Add checkin")
+    logging.debug("Add checkin")
     name = request.form["name"]
     tier = request.form["tier"]
     time = datetime.fromisoformat(request.form["time"])
     day_of_week = time.strftime("%A")
     challenger = Challengers.select().where(Challengers.name == name).get()
     challenge_week = ChallengeWeeks.challenge_week_during(time)
-    logging.info(
+    logging.debug(
         "Add checkin: %s",
         {
             "name": name,
@@ -368,13 +370,36 @@ def add_checkin():
         text=("%s checkin via magic" % tier),
         challenge_week=challenge_week,
     )
-    logging.info("Addind checkin: %s", checkin)
+    logging.debug("Addind checkin: %s", checkin)
     return render_template("magic.html")
+
+def is_checkin(message):
+    body = message.lower()
+    matches = re.match(".*((t\\d+)?.?(check.?in.?|✅)|(check.?in.?|✅)(t\\d+)?).*", body) is not None
+    return (matches and "liked" not in body and "emphasized" not in body and "loved" not in body and "laughed" not in body and "to \"" not in body and "to “" not in body)
+
+def get_tier(message):
+    match = re.match(".*(t\\d+).*", message.lower())
+    if (match is not None):
+        return match.group(1).upper()
+    return "unknown"
+
+def insert_checkin(message, tier, challenger, week_id):
+    tz = pytz.timezone(challenger.tz)
+    now = datetime.now(tz=tz)
+    logging.info('now %s', now)
+    def fn(conn, cur):
+        cur.execute(
+            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            (challenger.name, now, tier, now.strftime("%A"), message, week_id, challenger.id))
+    return fn
+
+
 
 @app.route("/mail", methods=["POST"])
 def mail():
     fromaddress = request.json['from']['text']
-    logging.info('weve got mail from %s', fromaddress)
+    logging.debug('weve got mail from %s', fromaddress)
 
     sessionmta = request.json['session']['mta']
     if (sessionmta != 'mx1.forwardemail.net' and sessionmta != 'mx2.forwardemail.net'):
@@ -402,7 +427,29 @@ def mail():
         logging.error('checksum mismatch %s %s', buffer_checksum, checksum)
         return "3", 200
 
-    logging.info('content %s', bdata.decode('utf-8'))
+    number, domain = fromaddress.split('@')
+    challenger = fetchone('select * from challengers where phone_number = %s and email_domain = %s', (number, domain))
+    challenge_week_id = fetchone("select id from challenge_weeks where start <= CURRENT_DATE at time zone 'America/New_York' and \"end\" >= CURRENT_DATE at time zone 'America/New_York';", ()).id
+
+    logging.info('challenger %s', challenger)
+    logging.info('challenge week %s', challenge_week_id)
+    message = bdata.decode('utf-8')
+
+    logging.info('content %s', message)
+
+    if (not is_checkin(message)):
+        logging.info('not checkin')
+        return "4", 200
+
+    tier = get_tier(message)
+
+    logging.info('tier %s', tier);
+
+    if (tier == "unknown"):
+        logging.info('unknown tier')
+        return "5", 200
+
+    with_psycopg(insert_checkin(message, tier, challenger, challenge_week_id))
 
     return "success", 200
 

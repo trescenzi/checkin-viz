@@ -13,6 +13,7 @@ psycopg = {extras = ["binary"], version = "*"}
 python-dotenv = "*"
 peewee = "*"
 psycopg2-binary = "*"
+pytz = "*"
 
 [dev-packages]
 
