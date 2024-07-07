@@ -373,80 +373,117 @@ def add_checkin():
     logging.debug("Addind checkin: %s", checkin)
     return render_template("magic.html")
 
+
 def is_checkin(message):
     body = message.lower()
-    matches = re.match(".*((t\\d+)?.?(check.?in.?|✅)|(check.?in.?|✅)(t\\d+)?).*", body) is not None
-    return (matches and "liked" not in body and "emphasized" not in body and "loved" not in body and "laughed" not in body and "to \"" not in body and "to “" not in body)
+    matches = (
+        re.match(".*((t\\d+)?.?(check.?in.?|✅)|(check.?in.?|✅)(t\\d+)?).*", body)
+        is not None
+    )
+    return (
+        matches
+        and "liked" not in body
+        and "emphasized" not in body
+        and "loved" not in body
+        and "laughed" not in body
+        and 'to "' not in body
+        and "to “" not in body
+    )
+
 
 def get_tier(message):
     match = re.match(".*(t\\d+).*", message.lower())
-    if (match is not None):
+    if match is not None:
         return match.group(1).upper()
     return "unknown"
+
 
 def insert_checkin(message, tier, challenger, week_id):
     tz = pytz.timezone(challenger.tz)
     now = datetime.now(tz=tz)
-    logging.info('now %s', now)
+    logging.info("now %s", now)
+
     def fn(conn, cur):
         cur.execute(
             "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-            (challenger.name, now, tier, now.strftime("%A"), message, week_id, challenger.id))
-    return fn
+            (
+                challenger.name,
+                now,
+                tier,
+                now.strftime("%A"),
+                message,
+                week_id,
+                challenger.id,
+            ),
+        )
 
+    return fn
 
 
 @app.route("/mail", methods=["POST"])
 def mail():
-    fromaddress = request.json['from']['text']
-    logging.debug('weve got mail from %s', fromaddress)
+    fromaddress = request.json["from"]["text"]
+    logging.debug("weve got mail from %s", fromaddress)
 
-    sessionmta = request.json['session']['mta']
-    if (sessionmta != 'mx1.forwardemail.net' and sessionmta != 'mx2.forwardemail.net'):
-        logging.error('not from mx1/2, %s', sessionmta)
+    sessionmta = request.json["session"]["mta"]
+    if sessionmta != "mx1.forwardemail.net" and sessionmta != "mx2.forwardemail.net":
+        logging.error("not from mx1/2, %s", sessionmta)
         return "1", 200
 
-    attachments = request.json['attachments']
-    first_text_plain = next((attachment for attachment in attachments if attachment['contentType'] == 'text/plain'), None)
-    if (first_text_plain is None):
+    attachments = request.json["attachments"]
+    first_text_plain = next(
+        (
+            attachment
+            for attachment in attachments
+            if attachment["contentType"] == "text/plain"
+        ),
+        None,
+    )
+    if first_text_plain is None:
         return "not_text", 200
 
-    content = first_text_plain['content']
-    checksum = first_text_plain['checksum']
+    content = first_text_plain["content"]
+    checksum = first_text_plain["checksum"]
 
-    if (content['type'] != 'Buffer'):
-        logging.error('non buffer data %s', content['type'])
+    if content["type"] != "Buffer":
+        logging.error("non buffer data %s", content["type"])
         return "2", 200
 
-    bdata = bytearray(content['data'])
+    bdata = bytearray(content["data"])
     md5 = hashlib.md5()
     md5.update(bdata)
     buffer_checksum = md5.hexdigest()
 
-    if (checksum != buffer_checksum):
-        logging.error('checksum mismatch %s %s', buffer_checksum, checksum)
+    if checksum != buffer_checksum:
+        logging.error("checksum mismatch %s %s", buffer_checksum, checksum)
         return "3", 200
 
-    number, domain = fromaddress.split('@')
-    challenger = fetchone('select * from challengers where phone_number = %s and email_domain = %s', (number, domain))
-    challenge_week_id = fetchone("select id from challenge_weeks where start <= CURRENT_DATE at time zone 'America/New_York' and \"end\" >= CURRENT_DATE at time zone 'America/New_York';", ()).id
+    number, domain = fromaddress.split("@")
+    challenger = fetchone(
+        "select * from challengers where phone_number = %s and email_domain = %s",
+        (number, domain),
+    )
+    challenge_week_id = fetchone(
+        "select id from challenge_weeks where start <= CURRENT_DATE at time zone 'America/New_York' and \"end\" >= CURRENT_DATE at time zone 'America/New_York';",
+        (),
+    ).id
 
-    logging.info('challenger %s', challenger)
-    logging.info('challenge week %s', challenge_week_id)
-    message = bdata.decode('utf-8')
+    logging.info("challenger %s", challenger)
+    logging.info("challenge week %s", challenge_week_id)
+    message = bdata.decode("utf-8")
 
-    logging.info('content %s', message)
+    logging.info("content %s", message)
 
-    if (not is_checkin(message)):
-        logging.info('not checkin')
+    if not is_checkin(message):
+        logging.info("not checkin")
         return "4", 200
 
     tier = get_tier(message)
 
-    logging.info('tier %s', tier);
+    logging.info("tier %s", tier)
 
-    if (tier == "unknown"):
-        logging.info('unknown tier')
+    if tier == "unknown":
+        logging.info("unknown tier")
         return "5", 200
 
     with_psycopg(insert_checkin(message, tier, challenger, challenge_week_id))

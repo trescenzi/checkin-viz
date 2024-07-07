@@ -5,6 +5,7 @@ import logging
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 
+
 def fetchall(query, args):
     with psycopg.connect(
         conninfo=connection_string, row_factory=namedtuple_row
@@ -13,6 +14,7 @@ def fetchall(query, args):
             logging.info(query % args)
             cur.execute(query, args)
             return cur.fetchall()
+
 
 def fetchone(query, args):
     with psycopg.connect(
@@ -23,6 +25,7 @@ def fetchone(query, args):
             cur.execute(query, args)
             result = cur.fetchone()
             return result
+
 
 def with_psycopg(fn):
     with psycopg.connect(

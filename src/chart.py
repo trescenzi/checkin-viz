@@ -268,7 +268,9 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
     latest_date = None
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute("select time at time zone 'America/New_York' from checkins order by time desc limit 1")
+            cur.execute(
+                "select time at time zone 'America/New_York' from checkins order by time desc limit 1"
+            )
             latest_date = cur.fetchone()
         conn.commit()
     checkins.sort(key=lambda x: x.name)
