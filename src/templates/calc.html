@@ -25,10 +25,10 @@
     </select>
     <div></div>
     <label for="cals">Calories:</label>
-    <input class="span2" pattern="[0-9+]*" id="cals" name="cals" required>
+    <input class="span2" id="cals" name="cals" required>
     <div id="caltier" class="f3 center">Tier: —</div>
     <label for="time">Minutes:</label>
-    <input class="span2" pattern="[0-9+]*" id="time" name="time" required>
+    <input class="span2" id="time" name="time" required>
     <div id="timetier" class="f3 center">Tier: —</div>
     <button class="span4">Calculate</button>
   </form>
@@ -47,24 +47,12 @@ function checkinTier(bmr, cals, time) {
     timeTier: timeTier
   };
 }
-function addInputVal(value) {
-  try {
-    const sum = value
-      .split('+')
-      .map(s => s.trim())
-      .map(s => parseInt(s, 10))
-      .reduce((a,b) => a+b, 0);
-    return sum;
-  } catch(e) {
-    alert('Invalid input');
-    return 0;
-  }
-}
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const bmr  = form.elements.challengers.value;
-  const cals = addInputVal(form.elements.cals.value);
-  const time = addInputVal(form.elements.time.value);
+  // this only ever comes from an input value and the result goes nowhere
+  const cals = eval(form.elements.cals.value);
+  const time = eval(form.elements.time.value);
   const {
     maxTier,
     calTier,
