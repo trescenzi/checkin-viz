@@ -53,11 +53,24 @@ function checkinTier(bmr, cals, time) {
     timeTier: timeTier
   };
 }
+function addInputVal(value) {
+  try {
+    const sum = value
+      .split('+')
+      .map(s => s.trim())
+      .map(s => parseInt(s, 10))
+      .reduce((a,b) => a+b, 0);
+    return sum;
+  } catch(e) {
+    alert('Invalid input');
+    return 0;
+  }
+}
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const bmr  = form.elements.challengers.value;
-  const cals = form.elements.cals.value;
-  const time = form.elements.time.value;
+  const cals = addInputVal(form.elements.cals.value);
+  const time = addInputVal(form.elements.time.value);
   const {
     maxTier,
     calTier,
