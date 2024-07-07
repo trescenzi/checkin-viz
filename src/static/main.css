@@ -16,16 +16,11 @@ html, body {
   height: 100%;
 }
 body {
-  padding: 16px;
+  padding: var(--space-2);
 }
 svg {
   display: block;
-  margin: 0 30px;
-}
-form {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: auto 1fr;
+  margin: 0 var(--space-4);
 }
 form button, select, input {
   border: 1px solid #636363;
@@ -48,8 +43,8 @@ form label {
 }
 form select {
   background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg>') no-repeat;
-  background-position: center right 10px;
-  background-size: 10px;
+  background-position: center right var(--size-1);
+  background-size: var(--size-1);
 }
 @media(hover: hover) {
   form button:hover,
@@ -86,7 +81,7 @@ table {
 }
 
 th, td {
-  padding: 8px;
+  padding: var(--space-1);
   border-bottom: 1px solid #636363;
 }
 
@@ -99,14 +94,14 @@ header {
   display: flex;
   align-items: center;
   border-bottom: 1px solid #636363;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-3);
 }
 header nav {
   flex: 1;
   text-align: right;
 }
 header h2 {
-  font-size: 24px;
+  font-size: var(--font-4);
 }
 header a {
   text-decoration: none;
@@ -114,8 +109,8 @@ header a {
 header li {
   list-style: none;
   display: inline-block;
-  margin-right: 24px;
-  font-size: 18px;
+  margin-right: var(--space-3);
+  font-size: var(--font-3);
 }
 
 @media(hover: hover){

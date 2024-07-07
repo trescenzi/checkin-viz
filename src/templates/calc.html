@@ -3,18 +3,8 @@
 {% block head %}
   {{ super() }}
   <style>
-    content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      max-width: 1200px;
-    }
-    div {
-      display: flex;
-      flex-direction: column;
-      align-content: center;
-      justify-content: center;
-      font-size: 56px;
-      text-align: center;
+    form {
+      max-width: 500px;
     }
     @media (max-width: 600px) {
       content {
@@ -26,10 +16,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 {% endblock %}
 {% block body %}
-<content>
-  <form style="max-width: 500px">
+<content class="grid">
+  <form class="grid gap">
     <label for="challengers">Name:</label>
-    <select id="challengers" name="challengers">
+    <select id="challengers"  class="span2" name="challengers">
       {% for challenger in challengers %}
         <option 
           value="{{ challenger.bmr }}"
@@ -39,14 +29,17 @@
         </option>
       {% endfor %}
     </select>
+    <div></div>
     <label for="cals">Calories:</label>
-    <input pattern="[0-9]*" type="number" id="cals" name="cals" required>
+    <input class="span2" pattern="[0-9+]*" id="cals" name="cals" required>
+    <div id="caltier" class="f3 center">Tier: —</div>
     <label for="time">Minutes:</label>
-    <input pattern="[0-9]*" type="number" id="time" name="time" required>
-    <button>Calculate</button>
+    <input class="span2" pattern="[0-9+]*" id="time" name="time" required>
+    <div id="timetier" class="f3 center">Tier: —</div>
+    <button class="span4">Calculate</button>
   </form>
-  <div>
-    <span id="tier">Tier: –</span>
+  <div class="center span3 f7">
+    <span id="tier">Tier: —</span>
   </div>
 </content>
 <script>
@@ -54,14 +47,44 @@ const form = document.querySelector('form');
 function checkinTier(bmr, cals, time) {
   const calTier = Math.floor(cals/bmr/7.5*100)-1;
   const timeTier = Math.floor(time/15-1);
-  return Math.max(calTier, timeTier);
+  return {
+    maxTier: Math.max(calTier, timeTier),
+    calTier: calTier,
+    timeTier: timeTier
+  };
+}
+function addInputVal(value) {
+  try {
+    const sum = value
+      .split('+')
+      .map(s => s.trim())
+      .map(s => parseInt(s, 10))
+      .reduce((a,b) => a+b, 0);
+    return sum;
+  } catch(e) {
+    alert('Invalid input');
+    return 0;
+  }
 }
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const bmr  = form.elements.challengers.value;
-  const cals = form.elements.cals.value;
-  const time = form.elements.time.value;
-  tier.innerText = `Tier: ${checkinTier(parseInt(bmr), parseInt(cals), parseInt(time))}`;
+  const cals = addInputVal(form.elements.cals.value);
+  const time = addInputVal(form.elements.time.value);
+  const {
+    maxTier,
+    calTier,
+    timeTier
+  } = checkinTier(parseInt(bmr), parseInt(cals), parseInt(time))
+  timetier.innerText = `Tier: ${timeTier}`
+  caltier.innerText = `Tier: ${calTier}`
+  tier.innerText = `Tier: ${maxTier}`;
+  if (maxTier === calTier) {
+    caltier.classList.add('bold');
+  }
+  if (maxTier === timeTier) {
+    timetier.classList.add('bold');
+  }
 })
 </script>
 {% endblock %}
