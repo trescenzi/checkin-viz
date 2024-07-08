@@ -5,7 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 {% endblock %}
 {% block body %}
-<h1>{{name}} Tier Chart</h1><a href="/calc?name={{name}}">Use Calculator</a>
+<h2>Settings</h2>
+<form method="POST">
+  <label for="timezone">Timezone</label>
+  <select id="timezone" name="timezone">
+    <option 
+      value="America/New_York"
+      {{'selected' if timezone == 'America/New_York'}}
+    >
+      US Eastern
+    </option>
+    <option 
+      value="America/Los_Angeles"
+      {{'selected' if timezone == 'America/Los_Angeles'}}
+    >
+      US Pacific
+    </option>
+    <option 
+      value="America/Chicago"
+      {{'selected' if timezone == 'America/Chicago'}}
+    >
+      US Central
+    </option>
+    <option 
+      value="America/Denver"
+      {{'selected' if timezone == 'America/Denver'}}
+    >
+      US Mountain
+    </option>
+    <option 
+      value="America/Phoenix"
+      {{'selected' if timezone == 'America/Phoenix'}}
+    >
+      Arizona Time(fuckers don't observe dst)
+    </option>
+    <option 
+      value="America/Anchorage"
+      {{'selected' if timezone == 'America/Anchorage'}}
+    >
+      Alaska
+    </option>
+    <option 
+      value="Pacific/Honolulu"
+      {{'selected' if timezone == 'Pacific/Honolulu'}}
+    >
+      Hawaii
+    </option>
+    <option 
+      value="Europe/London"
+      {{'selected' if timezone == 'Europe/London'}}
+    >
+      UK
+    </option>
+    <option 
+      value="Europe/Paris"
+      {{'selected' if timezone == 'Europe/Paris'}}
+    >
+      Europe
+    </option>
+    <option 
+      value="Asia/Tokyo"
+      {{'selected' if timezone == 'Asia/Tokyo'}}
+    >
+      Japan
+    </option>
+    <option 
+      value="Australia/Sydney"
+      {{'selected' if timezone == 'Australia/Sydney'}}
+    >
+      Sydney
+    </option>
+  </select>
+  <button type="submit">Update</button>
+</form>
+<h2>{{name}} Tier Chart</h2>
+<a href="/calc?name={{name}}">Use Calculator</a>
 <table>
   <thead>
     <tr>

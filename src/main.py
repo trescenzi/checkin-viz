@@ -310,12 +310,16 @@ def magic():
     return render_template("magic.html")
 
 
-@app.route("/challenger/<challenger>")
+@app.route("/challenger/<challenger>", methods=["GET", "POST"])
 def challenger(challenger):
+    if "timezone" in request.form: 
+        timezone = request.form["timezone"]
+        def fn(conn, cur):
+            cur.execute("update challengers set tz = %s where name = %s", [timezone, challenger])
+        with_psycopg(fn)
     c = fetchone("select * from challengers where name = %s", [challenger])
     logging.debug("Challenger: %s", c.name)
-    return render_template("challenger.html", name=challenger, bmr=c.bmr)
-
+    return render_template("challenger.html", name=challenger, bmr=c.bmr, timezone=c.tz)
 
 @app.route("/calc")
 def calc():
