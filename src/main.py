@@ -56,8 +56,8 @@ def points_so_far(challenge_id):
         week DESC, name, cc.tier
     ) as sub_query) group by name, tier order by tier;
     """
-        #time >= (SELECT start FROM challenges WHERE id = %s)
-        #AND time <= (SELECT "end" FROM challenges WHERE id = %s)
+    # time >= (SELECT start FROM challenges WHERE id = %s)
+    # AND time <= (SELECT "end" FROM challenges WHERE id = %s)
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
             cur.execute(sql, (challenge_id, challenge_id))
@@ -172,8 +172,7 @@ def challenge_weeks():
         """
     challenges = fetchall(sql, [])
     return [
-        list(value)
-        for n, value in itertools.groupby(challenges, key=lambda x: x.name)
+        list(value) for n, value in itertools.groupby(challenges, key=lambda x: x.name)
     ]
 
 
@@ -215,10 +214,14 @@ def index():
             current_week,
             current_date,
         )
-        current_challenge = fetchone("select * from challenges where start <= CURRENT_DATE and \"end\" >= CURRENT_DATE")
+        current_challenge = fetchone(
+            'select * from challenges where start <= CURRENT_DATE and "end" >= CURRENT_DATE'
+        )
     else:
         logging.debug("Getting challenge with name: %s", challenge_name)
-        current_challenge = fetchone("select * from challenges where name = %s", [challenge_name])
+        current_challenge = fetchone(
+            "select * from challenges where name = %s", [challenge_name]
+        )
 
     logging.info("Current challenge: %s", current_challenge)
     current_challenge_week = get_current_challenge_week()
@@ -231,7 +234,9 @@ def index():
 
     logging.debug("Austin points: %s", total_points)
 
-    selected_challenge_week = fetchone("select * from challenge_weeks where id = %s", [week_id])
+    selected_challenge_week = fetchone(
+        "select * from challenge_weeks where id = %s", [week_id]
+    )
     logging.debug(
         "Selected challenge week: %s is green: %s",
         selected_challenge_week,
@@ -315,7 +320,9 @@ def challenger(challenger):
 @app.route("/calc")
 def calc():
     name = request.args.get("name")
-    challengers = fetchall("select * from challengers where bmr is not null order by name")
+    challengers = fetchall(
+        "select * from challengers where bmr is not null order by name"
+    )
     return render_template("calc.html", challengers=challengers, name=name)
 
 
@@ -345,14 +352,16 @@ def add_checkin():
             "challenge_week": challenge_week.id,
         },
     )
-    with_psycopg(insert_checkin(
-        message = ("%s checkin via magic" % tier), 
-        tier = ("T%s" % tier), 
-        challenger = challenger, 
-        week_id = challenge_week.id, 
-        day_of_week = day_of_week,
-        time = time
-    ))
+    with_psycopg(
+        insert_checkin(
+            message=("%s checkin via magic" % tier),
+            tier=("T%s" % tier),
+            challenger=challenger,
+            week_id=challenge_week.id,
+            day_of_week=day_of_week,
+            time=time,
+        )
+    )
     return render_template("magic.html")
 
 
