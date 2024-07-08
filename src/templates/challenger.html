@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 {% endblock %}
 {% block body %}
+<h1>{{name}}</h1>
 <h2>Settings</h2>
 <form method="POST">
   <label for="timezone">Timezone</label>
@@ -78,7 +79,7 @@
   </select>
   <button type="submit">Update</button>
 </form>
-<h2>{{name}} Tier Chart</h2>
+<h2>Tier Chart</h2>
 <a href="/calc?name={{name}}">Use Calculator</a>
 <table>
   <thead>
