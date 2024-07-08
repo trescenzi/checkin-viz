@@ -56,6 +56,9 @@ form select {
     font-weight: bold;
   }
 }
+body.green button {
+  background-color: #41ab5d;
+}
 @media (prefers-color-scheme: dark) {
   html {
     background-color: #333;
