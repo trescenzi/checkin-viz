@@ -459,17 +459,6 @@ def mail():
         return "3", 200
 
     number, domain = fromaddress.split("@")
-    challenger = fetchone(
-        "select * from challengers where phone_number = %s and email_domain = %s",
-        (number, domain),
-    )
-    challenge_week_id = fetchone(
-        "select id from challenge_weeks where start <= CURRENT_DATE at time zone 'America/New_York' and \"end\" >= CURRENT_DATE at time zone 'America/New_York';",
-        (),
-    ).id
-
-    logging.info("challenger %s", challenger)
-    logging.info("challenge week %s", challenge_week_id)
     message = bdata.decode("utf-8")
 
     logging.info("content %s", message)
@@ -485,6 +474,18 @@ def mail():
     if tier == "unknown":
         logging.info("unknown tier")
         return "5", 200
+
+    challenger = fetchone(
+        "select * from challengers where phone_number = %s and email_domain = %s",
+        (number, domain),
+    )
+    challenge_week_id = fetchone(
+        "select id from challenge_weeks where start <= (CURRENT_DATE at time zone 'America/New_York')::DATE and \"end\" >= (CURRENT_DATE at time zone 'America/New_York')::DATE;",
+        (),
+    ).id
+
+    logging.info("challenger %s", challenger)
+    logging.info("challenge week %s", challenge_week_id)
 
     with_psycopg(insert_checkin(message, tier, challenger, challenge_week_id))
 
