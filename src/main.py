@@ -8,14 +8,6 @@ from flask import Flask, render_template, request, url_for
 import psycopg
 from psycopg.rows import namedtuple_row
 import logging
-from models import (
-    Checkins,
-    Challenges,
-    ChallengeWeeks,
-    Challengers,
-    ChallengerChallenges,
-)
-from peewee import *
 import random
 from rule_sets import calculate_total_score
 from chart import checkin_chart, week_heat_map_from_checkins, write_og_image
@@ -27,10 +19,6 @@ import pytz
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level=LOGLEVEL)
-pwlogger = logging.getLogger("peewee")
-pwlogger.addHandler(logging.StreamHandler())
-pwlogger.setLevel(logging.DEBUG)
-
 
 app = Flask(__name__)
 
@@ -49,27 +37,30 @@ def points_so_far(challenge_id):
     sql = """
     SELECT SUM(count), name, tier 
     FROM (SELECT week, name, tier, LEAST(count, 5) as count FROM
-      (SELECT 
-        date_part('week', time) as week, name, cc.tier as tier,
-        COUNT(distinct date_part('day', time)) as count
+      (
+      SELECT 
+        date_part('week', time at time zone 'America/New_York') as week,
+        name,
+        cc.tier as tier,
+        COUNT(distinct date_part('day', time at time zone 'America/New_York')) as count
         FROM
         checkins c
-        join challenger_challenges cc on 
-            cc.challenger_id = c.challenger
-        WHERE
-        time >= (SELECT start FROM challenges WHERE id = %s)
-        AND time <= (SELECT "end" FROM challenges WHERE id = %s)
-        and cc.challenge_id = %s
-        and (cc.knocked_out = FALSE AND cc.ante > 0)
+        join challenge_weeks cw on 
+            c.challenge_week_id = cw.id and cw.challenge_id = %s
+        join challenger_challenges cc on
+            c.challenger = cc.challenger_id and cc.challenge_id = %s
+        WHERE cc.knocked_out = FALSE AND cc.ante > 0 and cc.tier != 'T0'
         GROUP BY
         week, name, cc.tier
         ORDER BY
         week DESC, name, cc.tier
     ) as sub_query) group by name, tier order by tier;
     """
+        #time >= (SELECT start FROM challenges WHERE id = %s)
+        #AND time <= (SELECT "end" FROM challenges WHERE id = %s)
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute(sql, (challenge_id, challenge_id, challenge_id))
+            cur.execute(sql, (challenge_id, challenge_id))
             return cur.fetchall()
 
 
@@ -174,28 +165,26 @@ def details():
 
 
 def challenge_weeks():
-    challenges = (
-        Challenges.select(Challenges.name, ChallengeWeeks.id, ChallengeWeeks.start)
-        .join(ChallengeWeeks)
-        .order_by(ChallengeWeeks.start)
-    )
+    sql = """
+        select c.name, cw.id, cw.start from challenge_weeks cw
+        join challenges c on cw.challenge_id = c.id
+        order by cw.start
+        """
+    challenges = fetchall(sql, [])
     return [
         list(value)
-        for n, value in itertools.groupby(challenges.tuples(), key=lambda x: x[0])
+        for n, value in itertools.groupby(challenges, key=lambda x: x.name)
     ]
 
 
 def get_current_challenge_week():
-    now = datetime.now()
-    current_year = int(now.strftime("%Y"))
-    current_week = int(now.strftime("%W"))
-    challenge_week_predicate = (ChallengeWeeks.start.year == current_year) & (
-        ChallengeWeeks.week_of_year == current_week
-    )
-    current_challenge_week = (
-        ChallengeWeeks.select().where(challenge_week_predicate).get()
-    )
-    return current_challenge_week
+    sql = """
+        select * from challenge_weeks 
+        where 
+            week_of_year = extract(week from current_date at time zone 'America/New_York') and
+            extract(year from start) = extract(year from current_date)
+        """
+    return fetchone(sql, [])
 
 
 def checkins_this_week(challenge_week_id):
@@ -226,26 +215,15 @@ def index():
             current_week,
             current_date,
         )
-        current_challenge = (
-            Challenges.select()
-            .where(
-                (Challenges.start <= current_date) & (Challenges.end >= current_date)
-            )
-            .get()
-        )
+        current_challenge = fetchone("select * from challenges where start <= CURRENT_DATE and \"end\" >= CURRENT_DATE")
     else:
         logging.debug("Getting challenge with name: %s", challenge_name)
-        current_challenge = (
-            Challenges.select().where(Challenges.name == challenge_name).get()
-        )
+        current_challenge = fetchone("select * from challenges where name = %s", [challenge_name])
 
-    logging.debug("Current challenge: %s", current_challenge)
+    logging.info("Current challenge: %s", current_challenge)
     current_challenge_week = get_current_challenge_week()
-    logging.debug("Current challenge week: %s", current_challenge_week)
+    logging.info("Current challenge week: %s", current_challenge_week)
 
-    checkin_predicate = (Checkins.time >= ChallengeWeeks.start) & (
-        Checkins.time < fn.date_add(ChallengeWeeks.end, "1 day")
-    )
     if week_id is None:
         week_id = current_challenge_week.id
 
@@ -253,7 +231,7 @@ def index():
 
     logging.debug("Austin points: %s", total_points)
 
-    selected_challenge_week = ChallengeWeeks.get(id=week_id)
+    selected_challenge_week = fetchone("select * from challenge_weeks where id = %s", [week_id])
     logging.debug(
         "Selected challenge week: %s is green: %s",
         selected_challenge_week,
@@ -329,7 +307,7 @@ def magic():
 
 @app.route("/challenger/<challenger>")
 def challenger(challenger):
-    c = Challengers.get(Challengers.name == challenger)
+    c = fetchone("select * from challengers where name = %s", [challenger])
     logging.debug("Challenger: %s", c.name)
     return render_template("challenger.html", name=challenger, bmr=c.bmr)
 
@@ -337,7 +315,7 @@ def challenger(challenger):
 @app.route("/calc")
 def calc():
     name = request.args.get("name")
-    challengers = Challengers.select().where(Challengers.bmr != None).objects()
+    challengers = fetchall("select * from challengers where bmr is not null order by name")
     return render_template("calc.html", challengers=challengers, name=name)
 
 
@@ -348,8 +326,14 @@ def add_checkin():
     tier = request.form["tier"]
     time = datetime.fromisoformat(request.form["time"])
     day_of_week = time.strftime("%A")
-    challenger = Challengers.select().where(Challengers.name == name).get()
-    challenge_week = ChallengeWeeks.challenge_week_during(time)
+    challenger = fetchone("select * from challengers where name = %s", [name])
+    challenge_week_during_sql = """
+        select * from challenge_weeks 
+        where 
+            week_of_year = extract(week from %s at time zone 'America/New_York') and
+            extract(year from start) = extract(year from current_date)
+        """
+    challenge_week = fetchone(challenge_week_during_sql, [time])
     logging.debug(
         "Add checkin: %s",
         {
@@ -361,16 +345,14 @@ def add_checkin():
             "challenge_week": challenge_week.id,
         },
     )
-    checkin = Checkins.create(
-        name=name,
-        time=time,
-        day_of_week=day_of_week,
-        challenger=challenger,
-        tier=("T%s" % tier),
-        text=("%s checkin via magic" % tier),
-        challenge_week=challenge_week,
-    )
-    logging.debug("Addind checkin: %s", checkin)
+    with_psycopg(insert_checkin(
+        message = ("%s checkin via magic" % tier), 
+        tier = ("T%s" % tier), 
+        challenger = challenger, 
+        week_id = challenge_week.id, 
+        day_of_week = day_of_week,
+        time = time
+    ))
     return render_template("magic.html")
 
 
@@ -398,7 +380,7 @@ def get_tier(message):
     return "unknown"
 
 
-def insert_checkin(message, tier, challenger, week_id):
+def insert_checkin(message, tier, challenger, week_id, day_of_week, time):
     tz = pytz.timezone(challenger.tz)
     now = datetime.now(tz=tz)
     logging.info("now %s", now)
@@ -408,9 +390,9 @@ def insert_checkin(message, tier, challenger, week_id):
             "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             (
                 challenger.name,
-                now,
+                time or now,
                 tier,
-                now.strftime("%A"),
+                day_of_week or now.strftime("%A"),
                 message,
                 week_id,
                 challenger.id,
