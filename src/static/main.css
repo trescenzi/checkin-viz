@@ -31,9 +31,6 @@ form button, select, input {
   border-radius: 4px;
   appearance: none;
 }
-form button {
-  grid-column: 1 / -1;
-}
 form button:active,
 form select:active {
   background-color: #dfdfdf;
