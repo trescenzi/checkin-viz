@@ -180,7 +180,7 @@ def get_current_challenge_week():
     sql = """
         select * from challenge_weeks 
         where 
-            week_of_year = extract(week from current_date at time zone 'America/New_York') and
+            week_of_year = extract(week from current_timestamp at time zone 'America/New_York') and
             extract(year from start) = extract(year from current_date)
         """
     return fetchone(sql, [])
