@@ -20,6 +20,10 @@
   --font-6: 3.05rem;
   --font-7: 3.8rem;
 }
+content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
 .center {
   display: flex;
   justify-content: center;
@@ -47,6 +51,9 @@
 }
 .span4 {
   grid-column: span 4;
+}
+.mw {
+  max-width: 600px;
 }
 @media (max-width: 600px) {
   .grid {

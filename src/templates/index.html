@@ -31,17 +31,7 @@
     {% endif %}
     <style>
       form {
-        width: 350px;
-        margin-bottom: 30px;
-      }
-      .content {
-        display: grid;
-        grid-template-columns: auto 1fr;
-      }
-      @media(min-height: 800px) {
-        .content {
-          grid-template-columns: unset;
-        }
+        margin-bottom: var(--space-4);
       }
     </style>
 {% endblock %}
@@ -53,9 +43,9 @@
 {% endblock %}
 {% block body %}
     <h1>Checkins for {{current_challenge}} Week {{current_week_index}}({{current_week_start}}) </h1>
-    <div class="content">
-      <div>
-        <form class="grid gap" id="challengeForm">
+    <content>
+      <form class="grid gap mw" id="challengeForm">
+        <div>
           <label for="challenge">Challenge:</label>
             <select 
               name="challenge"
@@ -73,35 +63,35 @@
                 </option>
               {% endfor %}
             </select>
-            <label for="challenge_week" id="challengeWeekLabel">Week:</label>
-            {% for challenge in challenge_weeks %}
-              <select
-                name="challenge_week_{{challenge[0][0]}}"
-                id="challenge_{{loop.index}}_weeks"
-                class="challenge_week"
-              >
-                {% for week in challenge %}
-                  <option
-                    {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
-                    value="{{week[1]}}"
-                    name="{{loop.index}}"
-                  >
-                    Week: {{loop.index}}
-                  </option>
-                {% endfor %}
-              </select>
-            {% endfor %}
-            <button>View Week</button>
+          </div>
+          <div>
+          <label for="challenge_week" id="challengeWeekLabel">Week:</label>
+          {% for challenge in challenge_weeks %}
+            <select
+              name="challenge_week_{{challenge[0][0]}}"
+              id="challenge_{{loop.index}}_weeks"
+              class="challenge_week"
+            >
+              {% for week in challenge %}
+                <option
+                  {{'selected' if loop.index == current_week_index and challenge[0][0] == current_challenge}}
+                  value="{{week[1]}}"
+                  name="{{loop.index}}"
+                >
+                  Week: {{loop.index}}
+                </option>
+              {% endfor %}
+            </select>
+          {% endfor %}
+          </div>
+          <button>View Week</button>
+      </form>
+      {% if viewing_this_week and green is none %}
+        <form action="/make-it-green">
+          <button>Make it Green?!</button>
         </form>
-        {% if viewing_this_week and green is none %}
-          <form action="/make-it-green">
-            <button>Make it Green?!</button>
-          </form>
-        {% endif %}
-      </div>
-      <div>
-        {{ svg | safe }}
-        <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
-      </div>
-    </div>
+      {% endif %}
+      {{ svg | safe }}
+      <p><b>Latest as of {{ latest.strftime("%A %m/%d/%Y %I:%M %p") }}</b></p>
+    </content>
 {% endblock %}
