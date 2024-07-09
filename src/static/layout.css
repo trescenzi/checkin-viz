@@ -30,6 +30,9 @@ content {
   align-items: center;
   text-align: center;
 }
+.hidden {
+  display: none;
+}
 .grid {
   display: grid;
   grid-template-columns: minmax(max-content,1fr) minmax(max-content,1fr) minmax(max-content,1fr) minmax(max-content,1fr);

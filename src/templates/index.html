@@ -16,6 +16,7 @@
           challengeWeeks.forEach(w => w.remove());
           const selectedWeek = challengeWeeks.find(w => w.name.includes(challenge.dataset.chosen))
           challengeWeekLabel.after(selectedWeek);
+          selectedWeek.classList.remove('hidden');
         }
         showSelectedWeek();
         challenge.addEventListener('change', showSelectedWeek);
@@ -70,7 +71,7 @@
             <select
               name="challenge_week_{{challenge[0][0]}}"
               id="challenge_{{loop.index}}_weeks"
-              class="challenge_week"
+              class="challenge_week hidden"
             >
               {% for week in challenge %}
                 <option
