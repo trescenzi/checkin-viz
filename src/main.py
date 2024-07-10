@@ -398,7 +398,7 @@ def get_tier(message):
     return "unknown"
 
 
-def insert_checkin(message, tier, challenger, week_id, day_of_week, time):
+def insert_checkin(message, tier, challenger, week_id, day_of_week = None, time = None):
     tz = pytz.timezone(challenger.tz)
     now = datetime.now(tz=tz)
     logging.info("now %s", now)
