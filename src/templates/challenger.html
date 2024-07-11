@@ -79,6 +79,13 @@
   </select>
   <button>Update</button>
 </form>
+{% if not mulliganed %}
+<button type="button">
+  <a href="/mulligan/{{name}}">Mulligan Today</a>
+</button>
+{% else %}
+<h3>You've already mulliganed this challenge!</h3>
+{% endif %}
 <h2>Tier Chart</h2>
 <a href="/calc?name={{name}}">Use Calculator</a>
 <table>

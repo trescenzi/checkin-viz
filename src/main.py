@@ -4,7 +4,7 @@ import os
 import itertools
 from datetime import datetime, timedelta, date
 import json
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request, url_for, redirect
 import psycopg
 from psycopg.rows import namedtuple_row
 import logging
@@ -186,6 +186,10 @@ def get_current_challenge_week():
     return fetchone(sql, [])
 
 
+def get_current_challenge():
+    return fetchone('select * from challenges where start <= CURRENT_DATE and "end" >= CURRENT_DATE')
+
+
 def checkins_this_week(challenge_week_id):
     sql = """
     select name, day_of_week, tier, time at time zone 'America/New_York' as time from checkins c
@@ -214,9 +218,7 @@ def index():
             current_week,
             current_date,
         )
-        current_challenge = fetchone(
-            'select * from challenges where start <= CURRENT_DATE and "end" >= CURRENT_DATE'
-        )
+        current_challenge = get_current_challenge()
     else:
         logging.debug("Getting challenge with name: %s", challenge_name)
         current_challenge = fetchone(
@@ -322,8 +324,9 @@ def challenger(challenger):
 
         with_psycopg(fn)
     c = fetchone("select * from challengers where name = %s", [challenger])
-    logging.debug("Challenger: %s", c.name)
-    return render_template("challenger.html", name=challenger, bmr=c.bmr, timezone=c.tz)
+    m = fetchone("select cc.mulligan from challenger_challenges cc join challenges c on c.id = cc.challenge_id and c.start <= CURRENT_DATE and c.\"end\" >= CURRENT_DATE where cc.challenger_id = %s", [c.id])
+    logging.info("Challenger: %s, mulligan: %s", c.name, m)
+    return render_template("challenger.html", name=challenger, bmr=c.bmr, timezone=c.tz, mulliganed=(m.mulligan != None))
 
 
 @app.route("/calc")
@@ -405,7 +408,7 @@ def insert_checkin(message, tier, challenger, week_id, day_of_week = None, time 
 
     def fn(conn, cur):
         cur.execute(
-            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING returning id",
             (
                 challenger.name,
                 time or now,
@@ -416,6 +419,7 @@ def insert_checkin(message, tier, challenger, week_id, day_of_week = None, time 
                 challenger.id,
             ),
         )
+        return cur.fetchone().id
 
     return fn
 
@@ -491,6 +495,17 @@ def mail():
 
     return "success", 200
 
+
+@app.route("/mulligan/<challenger>")
+def mulligan(challenger):
+    challenge_week = get_current_challenge_week()
+    c = fetchone("select * from challengers where name = %s", [challenger])
+    def insert_checkin_and_associate_mulligan(conn, cur):
+        m = insert_checkin('MULLIGAN T1 checkin', 'T1', c, challenge_week.id)(conn, cur)
+        logging.debug("mulligan: %s, challenger: %s", m, c.id)
+        cur.execute("update challenger_challenges set mulligan = %s where challenger_id = %s and challenge_id = %s", [m, c.id, challenge_week.challenge_id])
+    with_psycopg(insert_checkin_and_associate_mulligan)
+    return redirect("/", code=303)
 
 if __name__ == "__main__":
     app.run(debug=True)
