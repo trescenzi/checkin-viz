@@ -33,6 +33,7 @@ button, select, input {
 }
 button a {
   text-decoration: none;
+  display: block;
 }
 button:active,
 select:active {

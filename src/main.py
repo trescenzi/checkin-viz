@@ -496,16 +496,16 @@ def mail():
     return "success", 200
 
 
-@app.route("/mulligan/<challenger>")
+@app.route("/mulligan/<challenger>", methods=["GET", "POST"])
 def mulligan(challenger):
     challenge_week = get_current_challenge_week()
     c = fetchone("select * from challengers where name = %s", [challenger])
     def insert_checkin_and_associate_mulligan(conn, cur):
         m = insert_checkin('MULLIGAN T1 checkin', 'T1', c, challenge_week.id)(conn, cur)
-        logging.debug("mulligan: %s, challenger: %s", m, c.id)
+        logging.info("MULLIGAN: %s, challenger: %s", m, c.id)
         cur.execute("update challenger_challenges set mulligan = %s where challenger_id = %s and challenge_id = %s", [m, c.id, challenge_week.challenge_id])
     with_psycopg(insert_checkin_and_associate_mulligan)
-    return redirect("/", code=303)
+    return render_template("mulligan.html", challenger=c)
 
 if __name__ == "__main__":
     app.run(debug=True)

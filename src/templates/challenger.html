@@ -80,9 +80,9 @@
   <button>Update</button>
 </form>
 {% if not mulliganed %}
-<button type="button">
-  <a href="/mulligan/{{name}}">Mulligan Today</a>
-</button>
+<form class="grid" style="margin-top: var(--space-2);" action="/mulligan/{{name}}" method="POST">
+<button>Mulligan Today</button>
+</form>
 {% else %}
 <h3>You've already mulliganed this challenge!</h3>
 {% endif %}
