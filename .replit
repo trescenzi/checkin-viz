@@ -5,4 +5,9 @@ run = "poetry run python src/main.py"
 channel = "stable-24_05"
 
 [deployment]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+exposeLocalhost = true
 # run = ["sh", "-c", "python3 src/main.py"]
