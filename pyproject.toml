@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "cgf-challenge"
+version = "0.1.0"
+description = ""
+authors = ["Thomas Crescenzi <trescenzi@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "*"
+svgwrite = "*"
+flask = "*"
+gunicorn = "*"
+cairosvg = "*"
+psycopg = {extras = ["binary"], version = "*"}
+python-dotenv = "*"
+peewee = "*"
+psycopg2-binary = "*"
+pytz = "*"
+
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
