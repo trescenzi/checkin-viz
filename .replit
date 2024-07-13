@@ -1,0 +1,8 @@
+modules = ["bash", "python-3.10", "python-3.12", "web"]
+run = "poetry run python src/main.py"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+# run = ["sh", "-c", "python3 src/main.py"]
