@@ -22,8 +22,6 @@ logging.basicConfig(level=LOGLEVEL)
 
 app = Flask(__name__)
 
-logging.info(connection_string)
-
 
 def get_challenges():
     with psycopg.connect(conninfo=connection_string) as conn:
