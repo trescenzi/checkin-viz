@@ -84,6 +84,7 @@ body.green button {
 table {
   border-collapse: collapse;
   text-align: left;
+  width: 100%;
 }
 
 th, td {

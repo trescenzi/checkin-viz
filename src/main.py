@@ -70,6 +70,11 @@ def total_ante(challenge_id, tier):
             return cur.fetchone()[0]
 
 
+def bi_checkins(challenge_id):
+    sql = "select sum(bi_checkins) from challenger_challenges where challenge_id = %s"
+    return fetchone(sql, [challenge_id]).sum
+
+
 def points_knocked_out(challenge_id):
     sql = """
     SELECT SUM(count), name, tier 
@@ -125,10 +130,11 @@ def details():
     t2 = sorted(t2, key=lambda x: -x[0])
     floating = [x for x in points if x[2] == "floating"]
     floating = sorted(floating, key=lambda x: -x[0])
+    checkins_to_subtract = bi_checkins(challenge_id)
     knocked_out = points_knocked_out(challenge_id)
     total_points_t2 = sum(x[0] for x in t2)
     total_points_t3 = sum(x[0] for x in t3)
-    total_points_floating = sum(x[0] for x in floating)
+    total_points_floating = sum(x[0] for x in floating) - checkins_to_subtract
     ante_floating = total_ante(challenge_id, "floating")
     ante_t2 = total_ante(challenge_id, "T2")
     ante_t3 = total_ante(challenge_id, "T3")
@@ -158,6 +164,7 @@ def details():
         challenge=challenge,
         knocked_out=knocked_out,
         weeks=weeksSinceStart,
+        total_floating=total_points_floating,
         challenges=[c for c in challenges if c[3] not in set([1, challenge_id])],
     )
 
@@ -185,7 +192,9 @@ def get_current_challenge_week():
 
 
 def get_current_challenge():
-    return fetchone('select * from challenges where start <= CURRENT_DATE and "end" >= CURRENT_DATE')
+    return fetchone(
+        'select * from challenges where start <= CURRENT_DATE and "end" >= CURRENT_DATE'
+    )
 
 
 def checkins_this_week(challenge_week_id):
@@ -322,9 +331,18 @@ def challenger(challenger):
 
         with_psycopg(fn)
     c = fetchone("select * from challengers where name = %s", [challenger])
-    m = fetchone("select cc.mulligan from challenger_challenges cc join challenges c on c.id = cc.challenge_id and c.start <= CURRENT_DATE and c.\"end\" >= CURRENT_DATE where cc.challenger_id = %s", [c.id])
+    m = fetchone(
+        'select cc.mulligan from challenger_challenges cc join challenges c on c.id = cc.challenge_id and c.start <= CURRENT_DATE and c."end" >= CURRENT_DATE where cc.challenger_id = %s',
+        [c.id],
+    )
     logging.info("Challenger: %s, mulligan: %s", c.name, m)
-    return render_template("challenger.html", name=challenger, bmr=c.bmr, timezone=c.tz, mulliganed=(m.mulligan != None))
+    return render_template(
+        "challenger.html",
+        name=challenger,
+        bmr=c.bmr,
+        timezone=c.tz,
+        mulliganed=(m.mulligan != None),
+    )
 
 
 @app.route("/calc")
@@ -399,7 +417,7 @@ def get_tier(message):
     return "unknown"
 
 
-def insert_checkin(message, tier, challenger, week_id, day_of_week = None, time = None):
+def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=None):
     tz = pytz.timezone(challenger.tz)
     now = datetime.now(tz=tz)
     logging.info("now %s", now)
@@ -498,12 +516,18 @@ def mail():
 def mulligan(challenger):
     challenge_week = get_current_challenge_week()
     c = fetchone("select * from challengers where name = %s", [challenger])
+
     def insert_checkin_and_associate_mulligan(conn, cur):
-        m = insert_checkin('MULLIGAN T1 checkin', 'T1', c, challenge_week.id)(conn, cur)
-        logging.info("MULLIGAN: %s, challenger: %s", m, c.id)
-        cur.execute("update challenger_challenges set mulligan = %s where challenger_id = %s and challenge_id = %s", [m, c.id, challenge_week.challenge_id])
+        m = insert_checkin("MULLIGAN T1 checkin", "T1", c, challenge_week.id)(conn, cur)
+        logging.debug("mulligan: %s, challenger: %s", m, c.id)
+        cur.execute(
+            "update challenger_challenges set mulligan = %s where challenger_id = %s and challenge_id = %s",
+            [m, c.id, challenge_week.challenge_id],
+        )
+
     with_psycopg(insert_checkin_and_associate_mulligan)
     return render_template("mulligan.html", challenger=c)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

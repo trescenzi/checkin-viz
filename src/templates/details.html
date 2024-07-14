@@ -4,6 +4,7 @@
     <title>Week {{week}} Checkins</title>
     <meta property="og:title" content="Challenge Data" />
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
   </head>
   <body>
     <h1>Data for {{challenge[0]}}</h1>
@@ -21,7 +22,7 @@
         <tbody>
             <tr>
               <td>Total Possible</td>
-              <td>{{weeks * 5}}</td>
+            <td>{{weeks * 5}}({{total_floating}})</td>
               <td></td>
               <td>${{total_ante_t2 + total_ante_t3 + total_ante_floating}}</td>
             </tr>
