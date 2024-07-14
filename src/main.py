@@ -161,6 +161,19 @@ def checkins_this_week(challenge_week_id):
     return fetchall(sql, [challenge_week_id])
 
 
+def number_of_non_green_weeks_before_this_one(challenge_id):
+    sql = """
+    select count(*) from challenge_weeks
+      where 
+      challenge_id = %s
+      and "end" >= (
+          select "end" from challenge_weeks where "end" <= current_date - 7 and green = true order by "end" desc limit 1
+      )
+      and "end" <= current_date - 7;
+  """
+    return fetchone(sql, [challenge_id]).count
+
+
 @app.route("/")
 def index():
     challenge_name = request.args.get("challenge")
@@ -260,9 +273,13 @@ def index():
 
 @app.route("/make-it-green")
 def make_it_green():
-    green = random.randint(1, 100) < 21
-    logging.debug("is is green %s", green)
     challenge_week = get_current_challenge_week()
+    num_non_green = number_of_non_green_weeks_before_this_one(
+        challenge_week.challenge_id
+    )
+    logging.info("there were %s weeks before this one that werent green", num_non_green)
+    green = random.randint(0, 100) < 20 * num_non_green
+    logging.debug("is is green %s", green)
     if challenge_week.green is None:
         challenge_week.green = green
         challenge_week.save()

@@ -93,6 +93,7 @@
     <tr>
       <th>Tier</th>
       <th>Calories Burnt</th>
+      <th>Calorie %</th>
       <th>Time Spent</th>
       <th>Points</th>
     </tr>
@@ -102,7 +103,8 @@
     <tr>
       <td>{{n}}</td>
       <!-- Calc the percent multiply by bmr -->
-      <td>{{((((7.5*n)/100)+0.075) * bmr)|round|int}}</td>
+      <td>{{((((6*(n - 1))/100)+0.15) * bmr)|round|int}}</td>
+      <td>{{((((6*(n - 1))/100)+0.15))}}</td>
       <!-- Calc the time -->
       <td>{{(15*(1+n))|round|int}}</td>
       <!-- Calc the points -->
