@@ -32,33 +32,9 @@ def get_challenges():
 
 
 def points_so_far(challenge_id):
-    sql = """
-    SELECT SUM(count), name, tier 
-    FROM (SELECT week, name, tier, LEAST(count, 5) as count FROM
-      (
-      SELECT 
-        date_part('week', time at time zone 'America/New_York') as week,
-        name,
-        cc.tier as tier,
-        COUNT(distinct date_part('day', time at time zone 'America/New_York')) as count
-        FROM
-        checkins c
-        join challenge_weeks cw on 
-            c.challenge_week_id = cw.id and cw.challenge_id = %s
-        join challenger_challenges cc on
-            c.challenger = cc.challenger_id and cc.challenge_id = %s
-        WHERE cc.knocked_out = FALSE AND cc.ante > 0 and cc.tier != 'T0'
-        GROUP BY
-        week, name, cc.tier
-        ORDER BY
-        week DESC, name, cc.tier
-    ) as sub_query) group by name, tier order by tier;
-    """
-    # time >= (SELECT start FROM challenges WHERE id = %s)
-    # AND time <= (SELECT "end" FROM challenges WHERE id = %s)
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute(sql, (challenge_id, challenge_id))
+            cur.execute("select * from get_challenge_score(%s, FALSE)", [challenge_id])
             return cur.fetchall()
 
 
@@ -76,30 +52,9 @@ def bi_checkins(challenge_id):
 
 
 def points_knocked_out(challenge_id):
-    sql = """
-    SELECT SUM(count), name, tier 
-    FROM (SELECT week, name, tier, LEAST(count, 5) as count FROM
-      (SELECT 
-        date_part('week', time) as week, name, cc.tier as tier,
-        COUNT(distinct date_part('day', time)) as count
-        FROM
-        checkins c
-        join challenger_challenges cc on 
-            cc.challenger_id = c.challenger
-        WHERE
-        time >= (SELECT start FROM challenges WHERE id = %s)
-        AND time <= (SELECT "end" FROM challenges WHERE id = %s)
-        and cc.challenge_id = %s
-        and (cc.knocked_out = TRUE or cc.ante = 0)
-        GROUP BY
-        week, name, cc.tier
-        ORDER BY
-        week DESC, name, cc.tier
-    ) as sub_query) group by name, tier;
-    """
     with psycopg.connect(conninfo=connection_string) as conn:
         with conn.cursor() as cur:
-            cur.execute(sql, (challenge_id, challenge_id, challenge_id))
+            cur.execute("select * from get_challenge_score(%s, TRUE)", [challenge_id])
             return cur.fetchall()
 
 
