@@ -30,6 +30,30 @@ button, select, input {
   min-width: 100px;
   border-radius: 4px;
   appearance: none;
+  vertical-align: middle;
+}
+input[type="radio"], input[type="checkbox"] {
+  min-width: auto;
+  appearance: none;
+  position: relative;
+  max-width: 16px;
+  max-height: 16px;
+}
+input[type="radio"] {
+  border-radius: 50%;
+}
+input[type="radio"]:checked::after {
+  content: " ";
+  width: 50%;
+  height: 50%;
+  vertical-align: middle;
+  display: block;
+  background-color: black;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
 }
 button a {
   text-decoration: none;
