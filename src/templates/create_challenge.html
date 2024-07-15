@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Create Challenge{% endblock %}
+{% block body %}
+<content>
+  <form class="grid gap" action="/create_challenge" method="post">
+    <label for="name">Name</label>
+    <input required class="span3" id="name" name="name" />
+    <label for="start">Start</label>
+    <input required class="span3" type="date" id="start" name="start" />
+    <label for="end">End</label>
+    <input required class="span3" type="date" id="end" name="end" />
+    <label for="bi_weeks">Bi Weeks</label>
+    <input required class="span3" pattern="[0-9]+]" type="number" id="bi_weeks" name="bi_weeks" />
+    <fieldset class="grid span4 gap">
+      <legend>Challengers</legend>
+    {% for challenger in challengers %}
+      <label for="{{challenger.name}}">{{challenger.name}}</label>
+      <input type="checkbox" value="{{ challenger.id }}" name="challengers" id="{{challenger.name}}">
+    {% endfor %}
+    {% if challengers|length % 2 != 0 %}
+      <div class="span2"></div>
+    {% endif %}
+    </fieldset>
+    <button class="span2">Create</button>
+  </form>
+</content>
+{% endblock %}

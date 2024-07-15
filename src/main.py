@@ -174,6 +174,47 @@ def number_of_non_green_weeks_before_this_one(challenge_id):
     return fetchone(sql, [challenge_id]).count
 
 
+@app.route("/create_challenge", methods=["GET", "POST"])
+def create_challenge():
+    print(request.method)
+    if request.method == "POST":
+
+        def create(conn, curr):
+            name = request.form["name"]
+            start = request.form["start"]
+            end = request.form["end"]
+            bi_weeks = request.form["bi_weeks"]
+            challengers = request.form.getlist("challengers")
+            curr.execute(
+                'insert into challenges (name, start, "end", bi_weeks) values (%s, %s, %s, %s) returning id',
+                [name, start, end, bi_weeks],
+            )
+            challenge_id = curr.fetchone()[0]
+            for c in challengers:
+                curr.execute(
+                    "insert into challenger_challenges (challenge_id, challenger_id) values (%s, %s)",
+                    [challenge_id, c],
+                )
+            start_date = datetime.strptime(start, "%Y-%m-%d")
+            end_date = datetime.strptime(end, "%Y-%m-%d")
+            diff = end_date - start_date
+            weeks = math.ceil(diff.days / 7)
+            for w in range(weeks):
+                start = start_date + timedelta(days=w * 7)
+                end = start_date + timedelta(days=(w * 7) + 6)
+                curr.execute(
+                    'insert into challenge_weeks (challenge_id, week_of_year, start, "end") values (%s, %s, %s, %s)',
+                    [challenge_id, start.isocalendar()[1], start, end],  # week of year
+                )
+
+        with_psycopg(create)
+
+    challengers = fetchall(
+        "select * from challengers where bmr is not null order by name"
+    )
+    return render_template("create_challenge.html", challengers=challengers)
+
+
 @app.route("/")
 def index():
     challenge_name = request.args.get("challenge")
