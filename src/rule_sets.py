@@ -60,6 +60,8 @@ def calculate_total_score(challenge_id):
         order by checkins.challenge_week_id
     """
     checkins_this_challenge = fetchall(query, (challenge_id, challenge_id))
+    if len(checkins_this_challenge) == 0:
+        return {}
     version = checkins_this_challenge[0].rule_set
     logging.info("Version: %s", version)
     nums = [
