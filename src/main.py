@@ -323,9 +323,10 @@ def make_it_green():
     logging.info("there were %s weeks before this one that werent green", num_non_green)
     green = random.randint(0, 100) < 20 * num_non_green
     logging.debug("is is green %s", green)
+    def set_green(conn, cur):
+        cur.execute("update challenge_weeks set green = %s where id = %s", [green, challenge_week.id])
     if challenge_week.green is None:
-        challenge_week.green = green
-        challenge_week.save()
+        with_psycopg(set_green)
     return render_template("green.html", green=green)
 
 
@@ -458,11 +459,11 @@ def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=No
 @app.route("/mail", methods=["POST"])
 def mail():
     fromaddress = request.json["from"]["text"]
-    logging.debug("weve got mail from %s", fromaddress)
+    logging.info("MAIL: weve got mail from %s", fromaddress)
 
     sessionmta = request.json["session"]["mta"]
     if sessionmta != "mx1.forwardemail.net" and sessionmta != "mx2.forwardemail.net":
-        logging.error("not from mx1/2, %s", sessionmta)
+        logging.error("MAIL: not from mx1/2, %s", sessionmta)
         return "1", 200
 
     attachments = request.json["attachments"]
@@ -481,7 +482,7 @@ def mail():
     checksum = first_text_plain["checksum"]
 
     if content["type"] != "Buffer":
-        logging.error("non buffer data %s", content["type"])
+        logging.error("MAIL: non buffer data %s", content["type"])
         return "2", 200
 
     bdata = bytearray(content["data"])
@@ -490,39 +491,36 @@ def mail():
     buffer_checksum = md5.hexdigest()
 
     if checksum != buffer_checksum:
-        logging.error("checksum mismatch %s %s", buffer_checksum, checksum)
+        logging.error("MAIL: checksum mismatch %s %s", buffer_checksum, checksum)
         return "3", 200
 
     number, domain = fromaddress.split("@")
     message = bdata.decode("utf-8")
 
-    logging.info("content %s", message)
+    logging.info("MAIL: content %s", message)
 
     if not is_checkin(message):
-        logging.info("not checkin")
+        logging.debug("MAIL: not checkin")
         return "4", 200
 
     tier = get_tier(message)
 
-    logging.info("tier %s", tier)
+    logging.info("MAIL: tier %s", tier)
 
     if tier == "unknown":
-        logging.info("unknown tier")
+        logging.info("MAIL: unknown tier")
         return "5", 200
 
     challenger = fetchone(
         "select * from challengers where phone_number = %s and email_domain = %s",
         (number, domain),
     )
-    challenge_week_id = fetchone(
-        "select id from challenge_weeks where start <= (CURRENT_DATE at time zone 'America/New_York')::DATE and \"end\" >= (CURRENT_DATE at time zone 'America/New_York')::DATE;",
-        (),
-    ).id
+    challenge_week = get_current_challenge_week()
 
-    logging.info("challenger %s", challenger)
-    logging.info("challenge week %s", challenge_week_id)
+    logging.info("MAIL: challenger %s", challenger)
+    logging.info("MAIL: challenge week %s", challenge_week.id)
 
-    with_psycopg(insert_checkin(message, tier, challenger, challenge_week_id))
+    with_psycopg(insert_checkin(message, tier, challenger, challenge_week.id))
 
     return "success", 200
 
