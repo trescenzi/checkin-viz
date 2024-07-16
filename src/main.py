@@ -525,6 +525,11 @@ def mail():
     return "success", 200
 
 
+@app.route("/sms", methods=["POST"])
+def sms():
+    logging.info('SMS: got a text %s', request.json)
+    return "success", 200
+
 @app.route("/mulligan/<challenger>", methods=["GET", "POST"])
 def mulligan(challenger):
     challenge_week = get_current_challenge_week()
