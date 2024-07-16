@@ -17,6 +17,7 @@ python-dotenv = "*"
 peewee = "*"
 psycopg2-binary = "*"
 pytz = "*"
+flask-cors = "^4.0.1"
 
 
 [tool.poetry.group.dev.dependencies]

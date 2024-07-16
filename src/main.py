@@ -15,12 +15,14 @@ import hashlib
 from helpers import fetchall, fetchone, with_psycopg
 import re
 import pytz
+from flask_cors import CORS
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
-logging.basicConfig(level=LOGLEVEL)
+logging.basicConfig(level="DEBUG")
 
 app = Flask(__name__)
+CORS(app)
 
 
 def get_challenges():
@@ -288,7 +290,7 @@ def index():
     cws = challenge_weeks()
     logging.debug("Weeks: %s", cws)
     current_challenge_weeks = next(v for v in cws if v[0][0] == current_challenge.name)
-    logging.debug("Current week index: %s", current_challenge_weeks)
+    logging.info("Current week index: %s", current_challenge_weeks)
     week_index = (
         next(i for i, v in enumerate(current_challenge_weeks) if v[1] == int(week_id))
         + 1
