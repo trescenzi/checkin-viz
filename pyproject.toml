@@ -18,6 +18,7 @@ peewee = "*"
 psycopg2-binary = "*"
 pytz = "*"
 flask-cors = "^4.0.1"
+twilio = "^9.2.3"
 
 
 [tool.poetry.group.dev.dependencies]
