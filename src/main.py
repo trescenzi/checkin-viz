@@ -15,14 +15,13 @@ import hashlib
 from helpers import fetchall, fetchone, with_psycopg
 import re
 import pytz
-from flask_cors import CORS
+from twilio_decorator import twilio_request
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level="DEBUG")
 
 app = Flask(__name__)
-CORS(app)
 
 
 def get_challenges():
@@ -526,8 +525,37 @@ def mail():
 
 
 @app.route("/sms", methods=["POST"])
+@twilio_request
 def sms():
-    logging.info('SMS: got a text %s', request.json)
+    body = request.form
+    phone_number = body.get('From')
+    message = body.get('Body')
+    logging.info('SMS: %s %s', phone_number, message)
+
+    if not is_checkin(message):
+        logging.debug("SMS: not checkin")
+        return "4", 200
+
+    tier = get_tier(message)
+
+    logging.info("SMS: tier %s", tier)
+
+    if tier == "unknown":
+        logging.info("SMS: unknown tier")
+        return "5", 200
+
+    challenger = fetchone(
+        "select * from challengers where phone_number = %s or phone_number = %s",
+        # check vs +1 and no +1
+        (phone_number, phone_number[2:]),
+    )
+    challenge_week = get_current_challenge_week()
+
+    logging.info("SMS: challenger %s", challenger)
+    logging.info("SMS: challenge week %s", challenge_week.id)
+
+    with_psycopg(insert_checkin(message, tier, challenger, challenge_week.id))
+
     return "success", 200
 
 @app.route("/mulligan/<challenger>", methods=["GET", "POST"])
