@@ -12,6 +12,7 @@ services:
       DB_HOST: $DB_HOST
       DB_PASSWORD: $DB_PASSWORD
       TWILIO_AUTH_TOKEN: $TWILIO_AUTH_TOKEN
+      LOGLEVEL: $LOGLEVEL
     network_mode: host
     volumes:
       - ./src/static:/src/static

@@ -116,6 +116,7 @@ def checkin_chart(
     )
     knocked_out_names = knocked_out(challenge_id)
     logging.info("knocked out: %s", knocked_out_names)
+    logging.info("Achievements: %s", achievements)
     text_color = "black" if green else ""
     for column, chart in enumerate(data):
         yLabel = chart.name
@@ -207,7 +208,7 @@ def checkin_chart(
             dwg.add(group)
 
         if chart.name in total_points:
-            logging.info(
+            logging.debug(
                 "adding points for %s total %s week %s",
                 chart.name,
                 total_points[chart.name],
@@ -256,7 +257,7 @@ def write_og_image(svg, week):
         output = "./static/preview-{week}.png".format(week=week)
         cairosvg.svg2png(bytestring=svg.encode("utf-8"), write_to=output)
     except:
-        logging.info("Failed to write og image")
+        logging.error("Failed to write og image")
 
 
 def sortCheckinByWeekday(data: List[str]) -> List[str]:
@@ -320,6 +321,7 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
             if time_hour and time_hour > latest:
                 latest = time_hour
             if time_hour and time_hour < earliest:
+                logging.info('time hour %s earliest %s checkin %s', time_hour, earliest, name)
                 earliest = time_hour
             total_checkins += 1 if checked_in else 0
             if (
@@ -328,7 +330,7 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
                 and time is not None
                 and time < first_to_five[1]
             ):
-                logging.info("new first to five %s %s", name, time)
+                logging.debug("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
                 point_checkins.append(score(tier, rule_set))
