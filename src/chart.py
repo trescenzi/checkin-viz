@@ -286,8 +286,8 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
         if name not in weeks_grouped_by_name:
             weeks_grouped_by_name[name] = []
 
-    latest = "00:00:00"
-    earliest = "23:59:59"
+    latest = "00:00"
+    earliest = "23:59"
     first_to_five = None
     if len(checkins) > 0:
         last_checkin = sorted(checkins, key=lambda x: x.time, reverse=True)[0]
