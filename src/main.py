@@ -161,7 +161,7 @@ def checkins_this_week(challenge_week_id):
       join
         challengers ch on ch.id = c.challenger
       where cw.id = %s
-      order by day_of_week;
+      order by day_of_week, time desc;
     """
     return fetchall(sql, [challenge_week_id])
 
