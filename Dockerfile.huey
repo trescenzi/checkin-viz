@@ -1,0 +1,14 @@
+FROM python:3.11-slim-bullseye
+
+RUN apt-get update -y
+RUN apt-get install -y libcairo2
+RUN pip install poetry
+
+COPY poetry.lock ./
+COPY pyproject.toml ./
+
+RUN poetry install --no-interaction --no-ansi
+
+COPY scripts/huey /
+COPY src/*.py /
+ENTRYPOINT [ "poetry", "run", "./huey" ]
