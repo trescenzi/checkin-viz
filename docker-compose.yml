@@ -17,3 +17,17 @@ services:
     volumes:
       - ./src/static:/src/static
     image: git.tcrez.dev/tcrez/checkin-viz
+  huey:
+    build:
+      context: .
+      dockerfile: Dockerfile.huey
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      DB_CONNECT_STRING: $DB_CONNECT_STRING
+      DB_USER: $DB_USER
+      DB_HOST: $DB_HOST
+      DB_PASSWORD: $DB_PASSWORD
+      TWILIO_AUTH_TOKEN: $TWILIO_AUTH_TOKEN
+      LOGLEVEL: $LOGLEVEL
+

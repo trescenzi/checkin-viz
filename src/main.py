@@ -317,8 +317,7 @@ def index():
     )
 
 
-@app.route("/make-it-green")
-def make_it_green():
+def determine_if_green():
     challenge_week = get_current_challenge_week()
     num_non_green = number_of_non_green_weeks_before_this_one(
         challenge_week.challenge_id
@@ -326,10 +325,21 @@ def make_it_green():
     logging.info("there were %s weeks before this one that werent green", num_non_green)
     green = random.randint(0, 100) < 20 * num_non_green
     logging.debug("is is green %s", green)
+
     def set_green(conn, cur):
-        cur.execute("update challenge_weeks set green = %s where id = %s", [green, challenge_week.id])
+        cur.execute(
+            "update challenge_weeks set green = %s where id = %s",
+            [green, challenge_week.id],
+        )
+
     if challenge_week.green is None:
         with_psycopg(set_green)
+    return green
+
+
+@app.route("/make-it-green")
+def make_it_green():
+    green = determine_if_green()
     return render_template("green.html", green=green)
 
 
@@ -532,9 +542,9 @@ def mail():
 @twilio_request
 def sms():
     body = request.form
-    phone_number = body.get('From')
-    message = body.get('Body')
-    logging.info('SMS: %s %s', phone_number, message)
+    phone_number = body.get("From")
+    message = body.get("Body")
+    logging.info("SMS: %s %s", phone_number, message)
 
     if not is_checkin(message):
         logging.debug("SMS: not checkin")
@@ -561,6 +571,7 @@ def sms():
     with_psycopg(insert_checkin(message, tier, challenger, challenge_week.id))
 
     return "success", 200
+
 
 @app.route("/mulligan/<challenger>", methods=["GET", "POST"])
 def mulligan(challenger):

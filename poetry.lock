@@ -567,6 +567,20 @@ testing = ["coverage", "eventlet", "gevent", "pytest", "pytest-cov"]
 tornado = ["tornado (>=0.2)"]
 
 [[package]]
+name = "huey"
+version = "2.5.1"
+description = "huey, a little task queue"
+optional = false
+python-versions = "*"
+files = [
+    {file = "huey-2.5.1.tar.gz", hash = "sha256:8a323783ab434a095a4e72b8c48c5b8f957f9031fa860474a390a0927e957112"},
+]
+
+[package.extras]
+backends = ["redis (>=3.0.0)"]
+redis = ["redis (>=3.0.0)"]
+
+[[package]]
 name = "idna"
 version = "3.7"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1351,4 +1365,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e82171620282392b525bcbdbdd76b27e2ebd7880ccfa361214cd2cb6d3d0e2e1"
+content-hash = "77ea3ec4ac6fc5b7ba7f9916019dc4c820134a8ff488baae3a4bad0716eb4609"

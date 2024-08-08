@@ -321,7 +321,9 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
             if time_hour and time_hour > latest:
                 latest = time_hour
             if time_hour and time_hour < earliest:
-                logging.info('time hour %s earliest %s checkin %s', time_hour, earliest, name)
+                logging.info(
+                    "time hour %s earliest %s checkin %s", time_hour, earliest, name
+                )
                 earliest = time_hour
             total_checkins += 1 if checked_in else 0
             if (
