@@ -14,15 +14,11 @@ gunicorn = "*"
 cairosvg = "*"
 psycopg = {extras = ["binary"], version = "*"}
 python-dotenv = "*"
-peewee = "*"
-psycopg2-binary = "*"
 pytz = "*"
 flask-cors = "^4.0.1"
 twilio = "^9.2.3"
 huey = "^2.5.1"
 
-
-[tool.poetry.group.dev.dependencies]
 
 [build-system]
 requires = ["poetry-core"]

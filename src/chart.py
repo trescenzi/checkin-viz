@@ -4,14 +4,7 @@ import logging
 import itertools
 from typing import List, Dict, NamedTuple
 import psycopg
-from models import (
-    Checkins,
-    Challenges,
-    ChallengeWeeks,
-    Challengers,
-    ChallengerChallenges,
-)
-from peewee import *
+from helpers import fetchall
 from datetime import datetime, timedelta, date
 import os
 from rule_sets import score
@@ -49,24 +42,29 @@ class CheckinChartData(NamedTuple):
 
 def knocked_out(challenge_id):
     return [
-        n.name
-        for n in Challengers.select(Challengers.name)
-        .join(ChallengerChallenges)
-        .where(
-            (ChallengerChallenges.challenge == challenge_id)
-            & (ChallengerChallenges.knocked_out == True)
+        r.name
+        for r in fetchall(
+            """
+        SELECT name FROM challengers c
+        JOIN challenger_challenges cc ON c.id = cc.challenger_id
+        WHERE cc.challenge_id = %s AND cc.knocked_out = true
+        """,
+            [challenge_id],
         )
-        .objects()
     ]
 
 
 def get_names(challenge_id):
     return [
-        n.name
-        for n in Challengers.select(Challengers.name)
-        .join(ChallengerChallenges)
-        .where(ChallengerChallenges.challenge == challenge_id)
-        .objects()
+        r.name
+        for r in fetchall(
+            """
+        SELECT name FROM challengers c
+        JOIN challenger_challenges cc ON c.id = cc.challenger_id
+        WHERE cc.challenge_id = %s
+        """,
+            [challenge_id],
+        )
     ]
 
 
