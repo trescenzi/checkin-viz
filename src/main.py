@@ -16,6 +16,7 @@ from helpers import fetchall, fetchone, with_psycopg
 import re
 import pytz
 from twilio_decorator import twilio_request
+from cache_decorator import last_modified
 
 connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -221,6 +222,9 @@ def create_challenge():
 
 
 @app.route("/")
+@last_modified(
+    "select time::TIMESTAMP as last_modified from checkins order by time desc limit 1"
+)
 def index():
     challenge_name = request.args.get("challenge")
     logging.debug("Challenge requested: %s", challenge_name)
