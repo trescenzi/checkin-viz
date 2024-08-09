@@ -204,6 +204,16 @@ def checkin_chart(
                     column * rectH + column * hGap + gutter + rectH / 2 + 5,
                 )
                 group.add(text)
+            if (
+                dataUnit.time is not None
+                and dataUnit.time.strftime("%H:%M") == achievements[3][1]
+            ):
+                text = dwg.text(" 🥇")
+                text.translate(
+                    row * rectW + row * wGap + gutter + rectW / 2 + 25,
+                    column * rectH + column * hGap + gutter + rectH / 2 + 5,
+                )
+                group.add(text)
 
             dwg.add(group)
 
@@ -289,6 +299,7 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
     latest = "00:00"
     earliest = "23:59"
     first_to_five = None
+    highest_tier = (1, "")
     if len(checkins) > 0:
         last_checkin = sorted(checkins, key=lambda x: x.time, reverse=True)[0]
         first_to_five = (last_checkin.name, last_checkin.time)
@@ -335,7 +346,10 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
                 logging.debug("new first to five %s %s", name, time)
                 first_to_five = (name, time)
             if tier:
-                point_checkins.append(score(tier, rule_set))
+                points = score(tier, rule_set)
+                point_checkins.append(points)
+                if points > highest_tier[0]:
+                    highest_tier = (points, time.strftime("%H:%M"))
             data.append(DataUnit(weekday, checkinIndex + 1, checked_in, time, tier))
         heatmap_data.append(
             CheckinChartData(
@@ -345,4 +359,4 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
                 sum(sorted(point_checkins, reverse=True)[:5]),
             )
         )
-    return heatmap_data, latest_date[0], (earliest, latest, first_to_five)
+    return heatmap_data, latest_date[0], (earliest, latest, first_to_five, highest_tier)
