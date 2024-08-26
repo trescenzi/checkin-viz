@@ -156,7 +156,7 @@ def get_current_challenge():
 
 def checkins_this_week(challenge_week_id):
     sql = """
-    select ch.name, day_of_week, tier, time at time zone ch.tz as time, cw.bye_week from checkins c
+    select ch.name, day_of_week, tier, time at time zone c.tz as time, cw.bye_week from checkins c
       join
         challenge_weeks cw on cw.id = c.challenge_week_id
       join
@@ -457,7 +457,7 @@ def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=No
 
     def fn(conn, cur):
         cur.execute(
-            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING returning id",
+            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger, tz) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING returning id",
             (
                 challenger.name,
                 time or now,
@@ -466,6 +466,7 @@ def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=No
                 message,
                 week_id,
                 challenger.id,
+                challenger.tz
             ),
         )
         return cur.fetchone().id
