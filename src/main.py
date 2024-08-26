@@ -156,7 +156,7 @@ def get_current_challenge():
 
 def checkins_this_week(challenge_week_id):
     sql = """
-    select ch.name, day_of_week, tier, time at time zone ch.tz as time from checkins c
+    select ch.name, day_of_week, tier, time at time zone ch.tz as time, cw.bye_week from checkins c
       join
         challenge_weeks cw on cw.id = c.challenge_week_id
       join

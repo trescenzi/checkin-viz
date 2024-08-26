@@ -50,7 +50,8 @@ def calculate_total_score(challenge_id):
         join challenges
             on challenge_weeks.challenge_id = challenges.id
         where 
-           challenge_weeks.challenge_id = %s
+           challenge_weeks.bye_week != true
+           and challenge_weeks.challenge_id = %s
            and challenges.id = %s
         group by
             date(checkins.time at time zone 'America/New_York'),

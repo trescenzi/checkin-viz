@@ -343,7 +343,7 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
             ):
                 logging.debug("new first to five %s %s", name, time)
                 first_to_five = (name, time)
-            if tier:
+            if tier and not sorted_checkins[checkinIndex].bye_week:
                 points = score(tier, rule_set)
                 point_checkins.append(points)
                 if points > highest_tier[0]:
