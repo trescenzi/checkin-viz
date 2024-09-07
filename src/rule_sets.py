@@ -53,6 +53,7 @@ def calculate_total_score(challenge_id):
            challenge_weeks.bye_week != true
            and challenge_weeks.challenge_id = %s
            and challenges.id = %s
+           and checkins.tier != 'T0'
         group by
             date(checkins.time at time zone 'America/New_York'),
             checkins.name,
