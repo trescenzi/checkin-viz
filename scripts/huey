@@ -1,3 +1,3 @@
 #!/bin/bash
-rm -f ./huey.txt # delete hueyfile
+rm -rf ./huey.txt # delete hueyfile
 poetry run huey_consumer.py tasks.huey
