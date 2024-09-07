@@ -475,7 +475,7 @@ def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=No
                 message,
                 week_id,
                 challenger.id,
-                challenger.tz
+                challenger.tz,
             ),
         )
         return cur.fetchone().id
