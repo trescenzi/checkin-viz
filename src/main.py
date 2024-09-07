@@ -156,15 +156,24 @@ def get_current_challenge():
 
 def checkins_this_week(challenge_week_id):
     sql = """
-    select ch.name, day_of_week, tier, time at time zone c.tz as time, cw.bye_week from checkins c
-      join
-        challenge_weeks cw on cw.id = c.challenge_week_id
-      join
-        challengers ch on ch.id = c.challenger
-      where cw.id = %s
-      order by day_of_week, time desc;
+    select
+      ch.name, checkins.day_of_week, c.tier, c.time at time zone ch.tz as time, cw.bye_week
+    from
+      (select day_of_week, max(ltrim(tier, 'T')::INT) as max_tier, challenger
+       from checkins
+       where challenge_week_id = %s
+       group by day_of_week, challenger) as checkins
+    join
+      checkins c on c.day_of_week = checkins.day_of_week and ltrim(c.tier, 'T')::INT = checkins.max_tier
+    join
+      challenge_weeks cw on cw.id = c.challenge_week_id
+    join
+      challengers ch on ch.id = c.challenger
+    where cw.id = %s
+    group by ch.name, checkins.day_of_week, c.tier, c.time, cw.bye_week, ch.tz
+    order by day_of_week, time desc;
     """
-    return fetchall(sql, [challenge_week_id])
+    return fetchall(sql, (challenge_week_id, challenge_week_id))
 
 
 def number_of_non_green_weeks_before_this_one(challenge_id):
