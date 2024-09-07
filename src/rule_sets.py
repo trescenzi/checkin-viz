@@ -31,7 +31,7 @@ def version_1_score(tier):
 def version_2_score(tier):
     if tier == "T0":
         return 0
-    number = int(tier.lstrip("T"))
+    number = int(tier.lstrip("T")) if isinstance(tier, str) else tier
     points = 0.9 + 0.1 * number
     logging.info("Tier: %s Number: %s Points: %s", tier, number, points)
     return points
@@ -40,7 +40,7 @@ def version_2_score(tier):
 def calculate_total_score(challenge_id):
     query = """
         select 
-            Max(checkins.tier) as max,
+            Max(ltrim(checkins.tier, 'T')::INT) as max,
             checkins.name,
             checkins.challenge_week_id,
             challenges.rule_set
