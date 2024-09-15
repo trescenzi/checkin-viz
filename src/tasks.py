@@ -12,6 +12,6 @@ def example_task(n):
 
 
 @huey.periodic_task(crontab(day_of_week="1", hour="6"))
-def health():
+def is_green_week():
     logging.debug("Checking if green")
     determine_if_green()
