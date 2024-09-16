@@ -138,14 +138,14 @@ def challenge_weeks():
     ]
 
 
-def get_current_challenge_week():
+def get_current_challenge_week(tz="America/New_York"):
     sql = """
         select * from challenge_weeks 
         where 
-            week_of_year = extract(week from current_timestamp at time zone 'America/New_York') and
+            week_of_year = extract(week from current_timestamp at time zone %s) and
             extract(year from start) = extract(year from current_date)
         """
-    return fetchone(sql, [])
+    return fetchone(sql, (tz))
 
 
 def get_current_challenge():
@@ -542,7 +542,7 @@ def mail():
         "select * from challengers where phone_number = %s and email_domain = %s",
         (number, domain),
     )
-    challenge_week = get_current_challenge_week()
+    challenge_week = get_current_challenge_week(challenger.tz)
 
     logging.info("MAIL: challenger %s", challenger)
     logging.info("MAIL: challenge week %s", challenge_week.id)
