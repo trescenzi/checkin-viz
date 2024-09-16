@@ -154,11 +154,11 @@ def checkin_chart(
 
             if column == 0:
                 # add day of week
-                text = dwg.text(x, fill=text_color)
+                text = dwg.text(x[:3], fill=text_color)
                 text.translate(
-                    rectW * row + wGap * row + gutter + rectW / 2, gutter - 10
+                    rectW * row + wGap * row + gutter + rectW / 2 - 10, gutter - 10
                 )
-                text.rotate(-90)
+                # text.rotate(-90)
                 dwg.add(text)
 
             rect = dwg.rect(
