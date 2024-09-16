@@ -145,7 +145,7 @@ def get_current_challenge_week(tz="America/New_York"):
             week_of_year = extract(week from current_timestamp at time zone %s) and
             extract(year from start) = extract(year from current_date)
         """
-    return fetchone(sql, (tz))
+    return fetchone(sql, [tz])
 
 
 def get_current_challenge():
