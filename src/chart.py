@@ -266,13 +266,20 @@ def checkin_chart(
             group.add(rect)
             group.add(rect_inner)
             if total_possible_checkins != total_possible_checkins_so_far:
-                percent_complete = total_possible_checkins_so_far / total_possible_checkins
-                x = (rows + 1.5) * rectW + (rows + 1.5) * wGap + gutter + (rectW * percent_complete)
+                percent_complete = (
+                    total_possible_checkins_so_far / total_possible_checkins
+                )
+                x = (
+                    (rows + 1.5) * rectW
+                    + (rows + 1.5) * wGap
+                    + gutter
+                    + (rectW * percent_complete)
+                )
                 top_y = column * rectH + column * hGap + gutter
                 bottom_y = top_y + rectH
                 line = dwg.line(
                     start=(x, top_y),
-                    end = (x, bottom_y),
+                    end=(x, bottom_y),
                     stroke_width=2,
                     stroke="black",
                 )
