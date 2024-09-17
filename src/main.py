@@ -67,6 +67,13 @@ def challenge_data(challenge_id):
             return cur.fetchone()
 
 
+def total_possible_checkins(challenge_id):
+    sql = "select count(*) * 5 as total_possible from challenge_weeks where challenge_id = %s;"
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql % challenge_id)
+            return cur.fetchone()
+
 @app.route("/details")
 def details():
     challenge_id = request.args.get("challenge_id")
@@ -289,16 +296,20 @@ def index():
     week = sorted(
         week, key=lambda x: -total_points[x.name] if x.name in total_points else 0
     )
+    total_checkins = {x[1]: x[0] for x in points_so_far(current_challenge.id) }
+    logging.info("TOTAL CHECKINS %s", total_checkins)
     logging.debug("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(
         week,
-        800,
+        1000,
         600,
         current_challenge.id,
         selected_challenge_week.green,
         selected_challenge_week.bye_week,
         total_points,
         achievements,
+        total_checkins,
+        total_possible_checkins(current_challenge.id)[0],
     )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")

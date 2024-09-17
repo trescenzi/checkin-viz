@@ -77,6 +77,8 @@ def checkin_chart(
     bye_week,
     total_points,
     achievements,
+    total_checkins,
+    total_possible_checkins,
 ):
     if len(data) == 0:
         logging.warning("empty week + year selected")
@@ -101,7 +103,7 @@ def checkin_chart(
 
     columns = len(data)
     rows = len(data[0].data)
-    rectW = (width - rows * wGap - gutter) / (rows + 1)
+    rectW = (width - rows * wGap - gutter) / (rows + 3)
     rectH = (height - columns * hGap - gutter) / (columns)
 
     dwg = svgwrite.Drawing("checkin.svg", size=(width + 1, height), debug=False)
@@ -215,21 +217,51 @@ def checkin_chart(
 
             dwg.add(group)
 
-        if chart.name in total_points:
-            logging.debug(
-                "adding points for %s total %s week %s",
-                chart.name,
-                total_points[chart.name],
-                chart.points,
-            )
-            text = dwg.text(
-                "%.1f (%.1f)" % (round(chart.points, 1), total_points[chart.name])
-            )
+        text = write_points(
+            dwg,
+            chart,
+            total_points, 
+            rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
+            column * rectH + column * hGap + gutter + rectH / 2,
+        )
+        if column == 0:
+            # add checkins heading
+            text = dwg.text("Checkins", fill=text_color)
             text.translate(
-                rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
-                column * rectH + column * hGap + gutter + rectH / 2,
+                rectW * (rows + 1.1) + wGap * (rows + 1.1) + gutter + rectW / 2 - 10, gutter - 10
             )
+            # text.rotate(-90)
             dwg.add(text)
+        if chart.name in total_checkins:
+            rect = dwg.rect(
+                insert=(
+                    (rows + 1.5) * rectW + (rows + 1.5) * wGap + gutter,
+                    column * rectH + column * hGap + gutter,
+                ),
+                size=(rectW, rectH),
+                fill="none",
+                stroke=stroke_color,
+                stroke_width=1,
+                rx=2,
+                ry=2,
+            )
+            percent_checked_in = float(total_checkins[chart.name] / total_possible_checkins)
+            rect_inner = dwg.rect(
+                insert=(
+                    (rows + 1.5) * rectW + (rows + 1.5) * wGap + gutter,
+                    column * rectH + column * hGap + gutter,
+                ),
+                size=(rectW * percent_checked_in, rectH),
+                fill=greens[5],
+                stroke=stroke_color,
+                stroke_width=1,
+                rx=2,
+                ry=2,
+            )
+            group = dwg.g()
+            group.add(rect)
+            group.add(rect_inner)
+            dwg.add(group)
 
     # Add Points Label
     text = dwg.text("Points", fill=text_color)
@@ -258,6 +290,20 @@ def checkin_chart(
         dwg.add(text)
 
     return dwg.tostring()
+
+def write_points(dwg, chart, total_points, x, y):
+    if chart.name in total_points:
+        logging.debug(
+            "adding points for %s total %s week %s",
+            chart.name,
+            total_points[chart.name],
+            chart.points,
+        )
+        text = dwg.text(
+            "%.1f (%.1f)" % (round(chart.points, 1), total_points[chart.name])
+        )
+        text.translate(x, y,)
+        dwg.add(text)
 
 
 def write_og_image(svg, week):
