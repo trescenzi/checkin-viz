@@ -74,6 +74,7 @@ def total_possible_checkins(challenge_id):
             cur.execute(sql % challenge_id)
             return cur.fetchone()
 
+
 @app.route("/details")
 def details():
     challenge_id = request.args.get("challenge_id")
@@ -296,7 +297,7 @@ def index():
     week = sorted(
         week, key=lambda x: -total_points[x.name] if x.name in total_points else 0
     )
-    total_checkins = {x[1]: x[0] for x in points_so_far(current_challenge.id) }
+    total_checkins = {x[1]: x[0] for x in points_so_far(current_challenge.id)}
     logging.info("TOTAL CHECKINS %s", total_checkins)
     logging.debug("WEEK: %s, LATEST: %s", week, latest)
     chart = checkin_chart(

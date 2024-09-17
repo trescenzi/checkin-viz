@@ -220,7 +220,7 @@ def checkin_chart(
         text = write_points(
             dwg,
             chart,
-            total_points, 
+            total_points,
             rows * rectW + rows * wGap + gutter + rectW / 2 - 30,
             column * rectH + column * hGap + gutter + rectH / 2,
         )
@@ -228,7 +228,8 @@ def checkin_chart(
             # add checkins heading
             text = dwg.text("Checkins", fill=text_color)
             text.translate(
-                rectW * (rows + 1.1) + wGap * (rows + 1.1) + gutter + rectW / 2 - 10, gutter - 10
+                rectW * (rows + 1.1) + wGap * (rows + 1.1) + gutter + rectW / 2 - 10,
+                gutter - 10,
             )
             # text.rotate(-90)
             dwg.add(text)
@@ -245,7 +246,9 @@ def checkin_chart(
                 rx=2,
                 ry=2,
             )
-            percent_checked_in = float(total_checkins[chart.name] / total_possible_checkins)
+            percent_checked_in = float(
+                total_checkins[chart.name] / total_possible_checkins
+            )
             rect_inner = dwg.rect(
                 insert=(
                     (rows + 1.5) * rectW + (rows + 1.5) * wGap + gutter,
@@ -291,6 +294,7 @@ def checkin_chart(
 
     return dwg.tostring()
 
+
 def write_points(dwg, chart, total_points, x, y):
     if chart.name in total_points:
         logging.debug(
@@ -302,7 +306,10 @@ def write_points(dwg, chart, total_points, x, y):
         text = dwg.text(
             "%.1f (%.1f)" % (round(chart.points, 1), total_points[chart.name])
         )
-        text.translate(x, y,)
+        text.translate(
+            x,
+            y,
+        )
         dwg.add(text)
 
 
