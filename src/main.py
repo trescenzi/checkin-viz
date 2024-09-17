@@ -74,6 +74,17 @@ def total_possible_checkins(challenge_id):
             cur.execute(sql % challenge_id)
             return cur.fetchone()
 
+def total_possible_checkins_so_far(challenge_id, week_id):
+    sql = "select count(*) * 5 as total_possible from challenge_weeks where challenge_id = %s and id < %s;"
+    with psycopg.connect(conninfo=connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql % (challenge_id, week_id))
+            checkins_possible_before_now = cur.fetchone()[0]
+            now = datetime.now()
+            day_of_week = now.weekday()
+            return checkins_possible_before_now + min(day_of_week + 1, 5)
+
+
 
 @app.route("/details")
 def details():
@@ -311,6 +322,8 @@ def index():
         achievements,
         total_checkins,
         total_possible_checkins(current_challenge.id)[0],
+        total_possible_checkins_so_far(current_challenge.id, 
+                                       current_challenge_week.id),
     )
     write_og_image(chart, week_id)
     og_path = url_for("static", filename="preview-" + str(week_id) + ".png")
