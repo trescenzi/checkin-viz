@@ -601,7 +601,7 @@ def sms():
         # check vs +1 and no +1
         (phone_number, phone_number[2:]),
     )
-    challenge_week = get_current_challenge_week()
+    challenge_week = get_current_challenge_week(challenger.tz)
 
     logging.info("SMS: challenger %s", challenger)
     logging.info("SMS: challenge week %s", challenge_week.id)
@@ -613,8 +613,8 @@ def sms():
 
 @app.route("/mulligan/<challenger>", methods=["GET", "POST"])
 def mulligan(challenger):
-    challenge_week = get_current_challenge_week()
     c = fetchone("select * from challengers where name = %s", [challenger])
+    challenge_week = get_current_challenge_week(c.tz)
 
     def insert_checkin_and_associate_mulligan(conn, cur):
         m = insert_checkin("MULLIGAN T1 checkin", "T1", c, challenge_week.id)(conn, cur)
