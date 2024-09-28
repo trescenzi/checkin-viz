@@ -5,8 +5,6 @@ import itertools
 from datetime import datetime, timedelta, date
 import json
 from flask import Flask, render_template, request, url_for, redirect
-import psycopg
-from psycopg.rows import namedtuple_row
 import logging
 import random
 from rule_sets import calculate_total_score
@@ -19,7 +17,6 @@ import pytz
 from twilio_decorator import twilio_request
 from cache_decorator import last_modified
 
-connection_string = os.environ["DB_CONNECT_STRING"]
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level="DEBUG")
 
