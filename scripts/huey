@@ -1,3 +1,5 @@
 #!/bin/bash
-rm -rf ./huey.txt # delete hueyfile
+rm -rf ./huey_tasks # delete hueyfile
+mkdir ./huey_tasks
+chmod 777 ./huey_tasks
 poetry run huey_consumer.py tasks.huey

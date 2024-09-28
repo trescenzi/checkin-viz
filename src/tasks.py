@@ -1,8 +1,7 @@
 from huey import crontab, FileHuey
 from main import determine_if_green
-import logging
 
-huey = FileHuey(path="./huey.txt")
+huey = FileHuey(path="./huey_tasks")
 
 
 @huey.task()
@@ -11,7 +10,7 @@ def example_task(n):
     return n
 
 
-@huey.periodic_task(crontab(day_of_week="1", hour="6"))
+@huey.periodic_task(crontab(day_of_week="*", hour="6", minute="0"))
 def is_green_week():
-    logging.debug("Checking if green")
+    print("Determining if green")
     determine_if_green()
