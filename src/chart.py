@@ -3,14 +3,12 @@ import svgwrite
 import logging
 import itertools
 from typing import List, Dict, NamedTuple
-import psycopg
-from helpers import fetchall
+from helpers import fetchall, fetchone
 from datetime import datetime, timedelta, date
 import os
 from rule_sets import score
 
 
-connection_string = os.environ["DB_CONNECT_STRING"]
 weekdays = [
     "Monday",
     "Tuesday",
@@ -348,13 +346,9 @@ def sortCheckinByWeekday(data: List[str]) -> List[str]:
 def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
     heatmap_data = []
     latest_date = None
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "select time at time zone 'America/New_York' from checkins order by time desc limit 1"
-            )
-            latest_date = cur.fetchone()
-        conn.commit()
+    latest_date = fetchone(
+        "select time at time zone 'America/New_York' from checkins order by time desc limit 1"
+    )
     checkins.sort(key=lambda x: x.name)
     weeks_grouped_by_name = {
         name: list(value)
