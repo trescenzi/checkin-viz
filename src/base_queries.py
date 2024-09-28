@@ -11,18 +11,11 @@ logging.basicConfig(level="DEBUG")
 
 
 def points_so_far(challenge_id):
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from get_challenge_score(%s, FALSE)", [challenge_id])
-            return cur.fetchall()
+    return fetchall("select * from get_challenge_score(%s, FALSE)", [challenge_id])
 
 
 def get_challenges():
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            logging.debug("select * from challenges")
-            cur.execute("select * from challenges")
-            return cur.fetchall()
+    return fetchall("select * from challenges")
 
 
 def bi_checkins(challenge_id):
@@ -31,25 +24,18 @@ def bi_checkins(challenge_id):
 
 
 def points_knocked_out(challenge_id):
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from get_challenge_score(%s, TRUE)", [challenge_id])
-            return cur.fetchall()
+    return fetchall("select * from get_challenge_score(%s, TRUE)", [challenge_id])
 
 
 def challenge_data(challenge_id):
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from challenges where id = %s;" % challenge_id)
-            return cur.fetchone()
+    return fetchone("select * from challenges where id = %s;", [challenge_id])
 
 
 def total_ante(challenge_id, tier):
-    sql = "select sum(ante) from challenger_challenges where challenge_id = %s and tier = %s"
-    with psycopg.connect(conninfo=connection_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, (challenge_id, tier))
-            return cur.fetchone()[0]
+    return fetchone(
+        "select sum(ante) from challenger_challenges where challenge_id = %s and tier = %s",
+        (challenge_id, tier),
+    ).sum
 
 
 def total_possible_checkins_so_far(challenge_id, week_id):

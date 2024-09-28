@@ -33,24 +33,25 @@ def details():
     logging.debug("Challenge ID: %s %s", challenge_id, challenge)
     weeksSinceStart = (
         min(
-            math.ceil((date.today() - challenge[1]).days / 7),
-            math.floor((challenge[2] - challenge[1]).days / 7),
+            math.ceil((date.today() - challenge.start).days / 7),
+            math.floor((challenge.end - challenge.start).days / 7),
         )
-        - challenge[4]
+        - challenge.bi_weeks
     )
     logging.debug("Weeks since start: %s", weeksSinceStart)
     points = points_so_far(challenge_id)
-    t3 = [x for x in points if x[2] == "T3"]
-    t3 = sorted(t3, key=lambda x: -x[0])
-    t2 = [x for x in points if x[2] == "T2"]
-    t2 = sorted(t2, key=lambda x: -x[0])
-    floating = [x for x in points if x[2] == "floating"]
-    floating = sorted(floating, key=lambda x: -x[0])
+    logging.info("points so far: %s", weeksSinceStart)
+    t3 = [x for x in points if x.tier == "T3"]
+    t3 = sorted(t3, key=lambda x: -x.points)
+    t2 = [x for x in points if x.tier == "T2"]
+    t2 = sorted(t2, key=lambda x: -x.points)
+    floating = [x for x in points if x.tier == "floating"]
+    floating = sorted(floating, key=lambda x: -x.points)
     checkins_to_subtract = bi_checkins(challenge_id)
     knocked_out = points_knocked_out(challenge_id)
-    total_points_t2 = sum(x[0] for x in t2)
-    total_points_t3 = sum(x[0] for x in t3)
-    total_points_floating = sum(x[0] for x in floating) - checkins_to_subtract
+    total_points_t2 = sum(x.points for x in t2)
+    total_points_t3 = sum(x.points for x in t3)
+    total_points_floating = sum(x.points for x in floating) - checkins_to_subtract
     ante_floating = total_ante(challenge_id, "floating")
     ante_t2 = total_ante(challenge_id, "T2")
     ante_t3 = total_ante(challenge_id, "T3")
@@ -60,7 +61,7 @@ def details():
     dollars_per_point_t2 = ante_t2 / total_points_t2 if total_points_t2 > 0 else 0
     dollars_per_point_t3 = ante_t3 / total_points_t3 if total_points_t3 > 0 else 0
 
-    points = sorted(points, key=lambda x: -x[0])
+    points = sorted(points, key=lambda x: -x.points)
     logging.debug("points: %s", points)
     challenges = get_challenges()
     return render_template(
@@ -81,7 +82,7 @@ def details():
         knocked_out=knocked_out,
         weeks=weeksSinceStart,
         total_floating=total_points_floating,
-        challenges=[c for c in challenges if c[3] not in set([1, challenge_id])],
+        challenges=[c for c in challenges if c.id not in set([1, challenge_id])],
     )
 
 
