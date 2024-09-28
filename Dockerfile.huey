@@ -1,7 +1,5 @@
 FROM python:3.12-slim
 
-RUN apt-get update -y
-RUN apt-get install -y libcairo2
 RUN pip install poetry
 
 COPY poetry.lock ./

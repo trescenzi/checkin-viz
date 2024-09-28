@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, date
 import json
 from flask import Flask, render_template, request, url_for, redirect
 import logging
-import random
 from rule_sets import calculate_total_score
 from chart import checkin_chart, week_heat_map_from_checkins, write_og_image
 import hashlib
@@ -16,6 +15,7 @@ import re
 import pytz
 from twilio_decorator import twilio_request
 from cache_decorator import last_modified
+from green import determine_if_green
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level="DEBUG")
@@ -81,19 +81,6 @@ def details():
         total_floating=total_points_floating,
         challenges=[c for c in challenges if c.id not in set([1, challenge_id])],
     )
-
-
-def number_of_non_green_weeks_before_this_one(challenge_id):
-    sql = """
-    select count(*) from challenge_weeks
-      where 
-      challenge_id = %s
-      and "end" >= (
-          select "end" from challenge_weeks where "end" <= current_date - 7 and green = true order by "end" desc limit 1
-      )
-      and "end" <= current_date - 7;
-  """
-    return fetchone(sql, [challenge_id]).count
 
 
 @app.route("/create_challenge", methods=["GET", "POST"])
@@ -240,26 +227,6 @@ def index():
         viewing_this_week=challenge_name == request.args.get("challenge") == None,
         green=selected_challenge_week.green,
     )
-
-
-def determine_if_green():
-    challenge_week = get_current_challenge_week()
-    num_non_green = number_of_non_green_weeks_before_this_one(
-        challenge_week.challenge_id
-    )
-    logging.info("there were %s weeks before this one that werent green", num_non_green)
-    green = random.randint(0, 100) < 20 * num_non_green
-    logging.debug("is is green %s", green)
-
-    def set_green(conn, cur):
-        cur.execute(
-            "update challenge_weeks set green = %s where id = %s",
-            [green, challenge_week.id],
-        )
-
-    if challenge_week.green is None:
-        with_psycopg(set_green)
-    return green
 
 
 @app.route("/make-it-green")

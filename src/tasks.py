@@ -1,7 +1,7 @@
-from huey import crontab, FileHuey
-from main import determine_if_green
+from huey import crontab, SqliteHuey
+from green import determine_if_green
 
-huey = FileHuey(path="./huey_tasks")
+huey = SqliteHuey()
 
 
 @huey.task()
@@ -10,7 +10,7 @@ def example_task(n):
     return n
 
 
-@huey.periodic_task(crontab(day_of_week="*", hour="6", minute="0"))
+@huey.periodic_task(crontab(hour="6", day="1"))
 def is_green_week():
     print("Determining if green")
     determine_if_green()
