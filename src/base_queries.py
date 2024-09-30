@@ -1,5 +1,7 @@
 from helpers import fetchone, fetchall
 from datetime import datetime, timedelta, date
+import pytz
+import logging
 import itertools
 
 
@@ -75,20 +77,55 @@ def get_current_challenge():
 def checkins_this_week(challenge_week_id):
     sql = """
     select
-      ch.name, checkins.day_of_week, c.tier, c.time at time zone ch.tz as time, cw.bye_week
+      ch.name,
+      checkins.day_of_week,
+      c.tier,
+      c.time at time zone ch.tz as time,
+      cw.bye_week,
+      CASE
+        WHEN checkins.id = cch.mulligan
+        THEN 'True'
+        ELSE 'False'
+    END AS isMulligan
     from
-      (select day_of_week, max(ltrim(tier, 'T')::INT) as max_tier, challenger
+      (select id, day_of_week, max(ltrim(tier, 'T')::INT) as max_tier, challenger
        from checkins
        where challenge_week_id = %s
-       group by day_of_week, challenger) as checkins
+       group by day_of_week, challenger, id) as checkins
     join
       checkins c on c.day_of_week = checkins.day_of_week and ltrim(c.tier, 'T')::INT = checkins.max_tier
     join
       challenge_weeks cw on cw.id = c.challenge_week_id
     join
       challengers ch on ch.id = c.challenger
+    join
+      challenger_challenges cch on ch.id = cch.challenger_id
     where cw.id = %s
-    group by ch.name, checkins.day_of_week, c.tier, c.time, cw.bye_week, ch.tz
+    group by ch.name, checkins.day_of_week, checkins.id, c.tier, c.time, cw.bye_week, ch.tz, cch.mulligan
     order by day_of_week, time desc;
     """
     return fetchall(sql, (challenge_week_id, challenge_week_id))
+
+
+def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=None):
+    tz = pytz.timezone(challenger.tz)
+    now = datetime.now(tz=tz)
+    logging.info("now %s", now)
+
+    def fn(conn, cur):
+        cur.execute(
+            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger, tz) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING returning id",
+            (
+                challenger.name,
+                time or now,
+                tier,
+                day_of_week or now.strftime("%A"),
+                message,
+                week_id,
+                challenger.id,
+                challenger.tz,
+            ),
+        )
+        return cur.fetchone().id
+
+    return fn

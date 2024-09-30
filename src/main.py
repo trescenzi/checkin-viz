@@ -338,30 +338,6 @@ def get_tier(message):
     return "unknown"
 
 
-def insert_checkin(message, tier, challenger, week_id, day_of_week=None, time=None):
-    tz = pytz.timezone(challenger.tz)
-    now = datetime.now(tz=tz)
-    logging.info("now %s", now)
-
-    def fn(conn, cur):
-        cur.execute(
-            "INSERT INTO checkins (name, time, tier, day_of_week, text, challenge_week_id, challenger, tz) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING returning id",
-            (
-                challenger.name,
-                time or now,
-                tier,
-                day_of_week or now.strftime("%A"),
-                message,
-                week_id,
-                challenger.id,
-                challenger.tz,
-            ),
-        )
-        return cur.fetchone().id
-
-    return fn
-
-
 @app.route("/mail", methods=["POST"])
 def mail():
     fromaddress = request.json["from"]["text"]
