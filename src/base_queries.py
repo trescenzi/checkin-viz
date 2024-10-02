@@ -78,31 +78,36 @@ def checkins_this_week(challenge_week_id):
     sql = """
     select
       ch.name,
-      checkins.day_of_week,
+      c.day_of_week,
       c.tier,
       c.time at time zone ch.tz as time,
       cw.bye_week,
       CASE
-        WHEN checkins.id = cch.mulligan
-        THEN 'True'
-        ELSE 'False'
-    END AS isMulligan
+        WHEN c.id = cch.mulligan
+        THEN True
+        ELSE False
+      END AS isMulligan
     from
-      (select id, day_of_week, max(ltrim(tier, 'T')::INT) as max_tier, challenger
+      (select max(time) as time, day_of_week, challenger
        from checkins
        where challenge_week_id = %s
-       group by day_of_week, challenger, id) as checkins
-    join
-      checkins c on c.day_of_week = checkins.day_of_week and ltrim(c.tier, 'T')::INT = checkins.max_tier
+       group by day_of_week, challenger) as max_time_per_day
+    join checkins c on
+      c.challenger = max_time_per_day.challenger 
+      and
+      c.time = max_time_per_day.time
+      and
+      c.day_of_week = max_time_per_day.day_of_week
     join
       challenge_weeks cw on cw.id = c.challenge_week_id
     join
-      challengers ch on ch.id = c.challenger
+      challengers ch on ch.id = max_time_per_day.challenger
     join
       challenger_challenges cch on ch.id = cch.challenger_id
     where cw.id = %s
-    group by ch.name, checkins.day_of_week, checkins.id, c.tier, c.time, cw.bye_week, ch.tz, cch.mulligan
-    order by day_of_week, time desc;
+    and cch.challenge_id = cw.challenge_id
+    group by c.id, ch.name, c.day_of_week, c.tier, c.time, cw.bye_week, ch.tz, cch.mulligan
+    order by time desc;
     """
     return fetchall(sql, (challenge_week_id, challenge_week_id))
 

@@ -26,6 +26,7 @@ class DataUnit(NamedTuple):
     checkedIn: bool
     time: datetime
     tier: str
+    isMulligan: bool
 
 
 class CheckinChartData(NamedTuple):
@@ -133,6 +134,7 @@ def checkin_chart(
         for row, dataUnit in enumerate(chart.data):
             x = dataUnit.x
             checkedIn = dataUnit.checkedIn
+            isMulligan = dataUnit.isMulligan
             fill_color = colors[2] if checkedIn and not is_knocked_out else base_color
             fill_color = colors[0] if is_knocked_out and checkedIn else fill_color
             stroke_color = colors[3] if not is_knocked_out else colors[1]
@@ -152,6 +154,9 @@ def checkin_chart(
                 and dataUnit.time == achievements[2][1]
             ):
                 fill_color = "#39FF14"
+            # Mulligans are always grey
+            if isMulligan:
+                fill_color = colors[2]
 
             if column == 0:
                 # add day of week
@@ -210,6 +215,14 @@ def checkin_chart(
                 text = dwg.text(" 🥇")
                 text.translate(
                     row * rectW + row * wGap + gutter + rectW / 2 + 25,
+                    column * rectH + column * hGap + gutter + rectH / 2 + 5,
+                )
+                group.add(text)
+            if dataUnit.isMulligan:
+                print(dataUnit)
+                text = dwg.text("(M)")
+                text.translate(
+                    row * rectW + row * wGap + gutter + rectW / 2 + 15,
                     column * rectH + column * hGap + gutter + rectH / 2 + 5,
                 )
                 group.add(text)
@@ -370,6 +383,7 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
         first_to_five = (last_checkin.name, last_checkin.time)
     for name in weeks_grouped_by_name:
         sorted_checkins = sortCheckinByWeekday(weeks_grouped_by_name[name])
+        logging.info("checkins %s" % sorted_checkins)
         data = []
         total_checkins = 0
         point_checkins = []
@@ -389,6 +403,11 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
             )
             time = (
                 sorted_checkins[checkinIndex].time
+                if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
+                else None
+            )
+            isMulligan = (
+                sorted_checkins[checkinIndex].ismulligan
                 if len(sorted_checkins) > checkinIndex and checkinIndex >= 0
                 else None
             )
@@ -415,7 +434,9 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
                 point_checkins.append(points)
                 if points > highest_tier[0]:
                     highest_tier = (points, time.strftime("%H:%M"))
-            data.append(DataUnit(weekday, checkinIndex + 1, checked_in, time, tier))
+            data.append(
+                DataUnit(weekday, checkinIndex + 1, checked_in, time, tier, isMulligan)
+            )
         heatmap_data.append(
             CheckinChartData(
                 name,
