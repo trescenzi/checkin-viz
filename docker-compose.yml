@@ -23,6 +23,7 @@ services:
       dockerfile: Dockerfile.huey
     platform: linux/amd64
     restart: unless-stopped
+    network_mode: host
     environment:
       DB_CONNECT_STRING: $DB_CONNECT_STRING
       DB_USER: $DB_USER
