@@ -34,6 +34,7 @@ class CheckinChartData(NamedTuple):
     data: List[DataUnit]
     totalCheckins: int
     points: float
+    hasMulliganed: bool
 
     def tostring(self) -> str:
         return json.dumps({"name": self.name, "data": self.data})
@@ -61,6 +62,21 @@ def get_names(challenge_id):
         SELECT name FROM challengers c
         JOIN challenger_challenges cc ON c.id = cc.challenger_id
         WHERE cc.challenge_id = %s
+        """,
+            [challenge_id],
+        )
+    ]
+
+
+def mulliganed_challengers(challenge_id):
+    return [
+        r.name
+        for r in fetchall(
+            """
+        SELECT name FROM challengers c
+        JOIN challenger_challenges cc ON c.id = cc.challenger_id
+        WHERE cc.challenge_id = %s
+        and cc.mulligan is not null
         """,
             [challenge_id],
         )
@@ -120,15 +136,25 @@ def checkin_chart(
     text_color = "black" if green else ""
     for column, chart in enumerate(data):
         yLabel = chart.name
+        hasMulliganed = chart.hasMulliganed
         is_knocked_out = yLabel in knocked_out_names
         a = svgwrite.container.Hyperlink("/challenger/%s" % chart.name, target="_self")
+        mulligan_circle = dwg.circle(
+            center=(5, rectH * column + hGap * column + gutter + rectH / 4),
+            r=5,
+            stroke=greens[5],
+            fill="transparent" if hasMulliganed else greens[5],
+        )
+        if hasMulliganed:
+            mulligan_circle.fill = "transparent"
         text1 = dwg.text(
             yLabel,
-            insert=(0, rectH * column + hGap * column + gutter + rectH / 2),
+            insert=(15, rectH * column + hGap * column + gutter + rectH / 2),
             font_size=14,
             text_decoration="line-through" if is_knocked_out else "",
             fill="currentcolor",
         )
+        dwg.add(mulligan_circle)
         a.add(text1)
         dwg.add(a)
         for row, dataUnit in enumerate(chart.data):
@@ -369,7 +395,9 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
     }
 
     names = get_names(challenge_id)
+    mulliganed = mulliganed_challengers(challenge_id)
     logging.info("Challengers: %s", names)
+    logging.info("Mulliganed Challengers: %s", mulliganed)
     for name in names:
         if name not in weeks_grouped_by_name:
             weeks_grouped_by_name[name] = []
@@ -443,6 +471,7 @@ def week_heat_map_from_checkins(checkins, challenge_id, rule_set):
                 data,
                 total_checkins,
                 sum(sorted(point_checkins, reverse=True)[:5]),
+                name in mulliganed,
             )
         )
     return heatmap_data, latest_date[0], (earliest, latest, first_to_five, highest_tier)
