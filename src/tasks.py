@@ -14,7 +14,7 @@ def example_task(n):
     return n
 
 
-@huey.periodic_task(crontab(hour="8", day="1"))
+@huey.periodic_task(crontab(hour="8" day="1"))
 def is_green_week():
     print("Determining if green")
     determine_if_green()
