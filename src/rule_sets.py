@@ -50,7 +50,10 @@ def calculate_total_score(challenge_id):
         join challenges
             on challenge_weeks.challenge_id = challenges.id
         where 
-           challenge_weeks.bye_week != true
+           (
+               challenge_weeks.bye_week != true
+               or challenge_weeks.bye_week is null
+           )
            and challenge_weeks.challenge_id = %s
            and challenges.id = %s
            and checkins.tier != 'T0'
