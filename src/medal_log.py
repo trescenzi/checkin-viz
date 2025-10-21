@@ -7,9 +7,11 @@ SELECT
      m.medal AS medal_name,
      m.emoji AS medal_emoji,
      c.name AS challenger_name,
+     c.discord_id as discord_id,
      ci.tier AS checkin_tier,
      ci.time AS checkin_time,
      stolen_c.name AS stolen_checkin_challenger_name,
+     stolen_c.discord_id as stolen_discord_id,
      stolen_ci.tier as stolen_checkin_tier,
      m.checkin_id
  FROM
@@ -27,4 +29,4 @@ SELECT
  ORDER BY
      m.created_at;
 """
-    fetchall(sql, (challenge_week_id))
+    return fetchall(sql, [challenge_week_id])

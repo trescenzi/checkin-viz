@@ -25,6 +25,16 @@ intents.message_content = True
 
 bot = discord.Bot(intents=intents)
 
+nice_medal_names = {
+    "earliest_for_week": "earliest checkin this week",
+    "first_to_green": "first to green",
+    "gold": "gold",
+    "green": "green",
+    "highest_tier_challenge": "highest tier for the challenge",
+    "highest_tier_week": "highest tier this week",
+    "latest_for_week": "latest checkin this week"
+}
+
 
 @bot.event
 async def on_ready():
@@ -136,11 +146,21 @@ async def on_message(message):
     challenge = get_current_challenge()
     medals.update_medal_table(challenge.id, challenge_week.id)
     log = medal_log.get_medal_log(challenge_week.id)
-    relevant_medals = [medal for medal in log if medal.checkin_id == checkin_id]
-    for medal in relevant_medals:
-        await message.add_reaction(medal.medal_emoji)
+    logging.info("DISCORD: medal log %s", log)
 
-    logging.info("DISCORD: medals for checkin %s", relevant_medals)
+    relevant_medals = [medal for medal in log if medal.checkin_id == checkin_id]
+    if relevant_medals:
+        logging.info("DISCORD: medals for checkin %s", relevant_medals)
+        medal_message = ""
+        for medal in relevant_medals:
+            await message.add_reaction(medal.medal_emoji)
+            if medal.stolen_checkin_challenger_name:
+                medal_message += f"\n\n <@{medal.discord_id}> stole {nice_medal_names[medal.medal_name]}({medal.medal_emoji}) from <@{medal.stolen_discord_id}>!"
+            else:
+                medal_message += f"\n\n <@{medal.discord_id}> got {nice_medal_names[medal.medal_name]}({medal.medal_emoji})!"
+        logging.info("DISCORD: %s", medal_message)
+        await message.reply(medal_message)
+
 
 
 async def send_current_chart(message):
