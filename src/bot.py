@@ -155,9 +155,9 @@ async def on_message(message):
         for medal in relevant_medals:
             await message.add_reaction(medal.medal_emoji)
             if medal.stolen_checkin_challenger_name:
-                medal_message += f"\n\n <@{medal.discord_id}> stole {nice_medal_names[medal.medal_name]}({medal.medal_emoji}) from <@{medal.stolen_discord_id}>!"
+                medal_message += f"\n\n <@{medal.discord_id}> stole {nice_medal_names[medal.medal_name]} {medal.medal_emoji} from <@{medal.stolen_discord_id}>!"
             else:
-                medal_message += f"\n\n <@{medal.discord_id}> got {nice_medal_names[medal.medal_name]}({medal.medal_emoji})!"
+                medal_message += f"\n\n <@{medal.discord_id}> got {nice_medal_names[medal.medal_name]} {medal.medal_emoji}!"
         logging.info("DISCORD: %s", medal_message)
         await message.reply(medal_message)
 
