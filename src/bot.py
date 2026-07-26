@@ -16,6 +16,7 @@ import slash_commands.bmr
 from chart import checkin_chart, diamond_week_holders, red_week_holders, week_heat_map_from_checkins, write_og_image
 from rule_sets import calculate_total_score
 import medal_log
+from medal_roundup import should_suppress_medal_announcements
 from discord_bot import bot
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "DEBUG").upper()
@@ -267,6 +268,13 @@ async def on_message(message):
         # Add reactions for all medals
         for medal in relevant_medals:
             await message.add_reaction(medal.medal_emoji)
+
+        # Suppress replies until after Opening Medal Roundup on challenge day 2.
+        if should_suppress_medal_announcements(challenge_week.start):
+            logging.info(
+                "DISCORD: skipping medal reply before opening roundup window ends"
+            )
+            return
         
         # Group medals by user, action type, and (for steals) the person they stole from
         grouped_medals = defaultdict(list)
