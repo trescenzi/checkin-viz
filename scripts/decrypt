@@ -1,3 +1,4 @@
 #! /bin/bash
 
 sops --decrypt --input-type dotenv --output-type dotenv .env.sops > .env
+sops --decrypt database/db.dump.sops > database/db.dump

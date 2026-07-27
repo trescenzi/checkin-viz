@@ -1,6 +1,6 @@
 #! /bin/bash
 
-echo "------- Dumping Production Schema --------"
+echo "------- Decrypting Production Dump --------"
 pg_dump $PROD_DB_CONNECT_STRING -Fc -t checkins -t challengers -t medals -t challenge_weeks -t challenger_challenges -t challenges --schema-only --no-owner --no-acl -f tables.dump
 echo "------------ Creating Tables -------------"
 # -h postgres works because the service's name is postgres

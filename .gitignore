@@ -15,3 +15,4 @@ test_discord_message.py
 test_discord_setup.py
 run_local.sh
 src/huey.db
+database/db.dump
