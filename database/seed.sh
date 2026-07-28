@@ -24,5 +24,15 @@ echo "------------------------------------------"
 PGPASSWORD=password psql $LOCAL_DB_CONNECT_STRING -f /seed/load.sql
 
 echo "------------------------------------------"
+echo "----------- Done Seeding Data ------------"
+echo "------------------------------------------"
+
+echo "------------------------------------------"
+echo "----------- Seeding Functions ------------"
+echo "------------------------------------------"
+
+PGPASSWORD=password psql $LOCAL_DB_CONNECT_STRING -f /seed/functions.sql
+
+echo "------------------------------------------"
 echo "--------- Done Database Seeding ----------"
 echo "------------------------------------------"
