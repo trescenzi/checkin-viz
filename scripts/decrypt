@@ -2,3 +2,6 @@
 
 sops --decrypt --input-type dotenv --output-type dotenv .env.sops > .env
 sops --decrypt database/db.dump.sops > database/db.dump
+for f in database/seed/base/*.csv.sops database/seed/current/*.csv.sops database/seed/functions.sql.sops; do
+  sops --decrypt "$f" >  "${f%.sops}"
+done

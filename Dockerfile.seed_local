@@ -1,7 +1,7 @@
 FROM postgres:18-alpine
 
 COPY ./database/seed.sh .
-COPY ./database/db.dump .
+COPY ./database/seed /seed
 
 RUN chmod +x seed.sh
 
