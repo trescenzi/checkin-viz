@@ -18,3 +18,4 @@ src/huey.db
 database/seed/*.dump
 database/seed/**/*.csv
 database/seed/*.sql
+!database/seed/load.sql
