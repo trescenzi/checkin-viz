@@ -139,6 +139,42 @@ async def auto_knockout():
 
 cron.register(auto_knockout, queue_name="cron", cron="5 14 * * *")
 
+
+async def opening_medal_roundup():
+    logging.info("Running opening medal roundup")
+    from base_queries import get_current_challenge_week
+    from medal_roundup import (
+        build_opening_medal_roundup_message,
+        is_opening_roundup_day,
+    )
+    from medals import get_current_week_medal_standings
+
+    challenge_week = get_current_challenge_week()
+    if challenge_week is None:
+        logging.info("No current challenge week; skipping opening medal roundup")
+        return
+
+    if not is_opening_roundup_day(challenge_week.start):
+        logging.info("Not challenge day 2; skipping opening medal roundup")
+        return
+
+    standings = get_current_week_medal_standings(
+        challenge_week.challenge_id, challenge_week.id
+    )
+    message = build_opening_medal_roundup_message(standings)
+    if message is None:
+        logging.info("No medals for opening roundup; skipping")
+        return
+
+    channel = await get_channel()
+    if channel is None:
+        logging.warning("Cannot send opening medal roundup: channel not found")
+        return
+    await channel.send(message)
+
+
+cron.register(opening_medal_roundup, queue_name="cron", cron="0 14 * * *")
+
 # def check_mulligans():
 #    logging.info("checking for mulligans")
 #    last_week_checkins = check_last_week_for_mulligan_necessity()

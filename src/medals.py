@@ -1,5 +1,10 @@
 from helpers import *
 import logging
+from medal_constants import (
+    CHALLENGE_SCOPED_MEDALS,
+    NON_STEALABLE_MEDALS,
+    nice_medal_names,
+)
 
 # Podium emoji constants
 PODIUM_EMOJIS = {
@@ -25,22 +30,8 @@ medal_metadata = {
     "latest_for_week": {"group": "D", "difficulty": 2},
 }
 
-# Nice display names for medals
-nice_medal_names = {
-    "highest_tier_challenge": "Highest Overall Tier",
-    "highest_tier_week": "Highest Weekly Tier",
-    "gold": "Gold Week",
-    "all_gold": "All Gold",
-    "first_to_green": "First to Green",
-    "green": "Green Week",
-    "red": "Red Week",
-    "diamond": "Diamond Week",
-    "all_green": "All Green",
-    "earliest_for_week": "Earliest Weekly Check-in",
-    "latest_for_week": "Latest Weekly Check-in",
-    "earliest_for_challenge": "Earliest Overall Check-in",
-    "latest_for_challenge": "Latest Overall Check-in",
-}
+# Re-export for existing imports: from medals import nice_medal_names, NON_STEALABLE_MEDALS
+
 
 # all medal queries return
 # name, tier, checkin_id, challenge_week_id, time, medal_name, medal_emoji
@@ -158,13 +149,66 @@ insert into medals
     with_psycopg(insert_all_medals)
 
 
+def get_current_week_medal_standings(challenge_id, challenge_week_id):
+    """
+    Current medal holders for the opening roundup.
+
+    Week-scoped medals: rows for this challenge week.
+    Challenge-scoped medals: current holders across the whole challenge
+    (so prior-week awards still appear as currently held).
+
+    Non-stealable medals: every recipient.
+    Stealable medals: only the latest holder per medal name.
+    """
+    non_stealable_list = ", ".join(f"'{m}'" for m in sorted(NON_STEALABLE_MEDALS))
+    challenge_scoped_list = ", ".join(
+        f"'{m}'" for m in sorted(CHALLENGE_SCOPED_MEDALS)
+    )
+    sql = f"""
+    WITH ranked_medals AS (
+        SELECT
+            m.medal AS medal_name,
+            m.emoji AS medal_emoji,
+            c.discord_id,
+            m.created_at,
+            ROW_NUMBER() OVER (
+                PARTITION BY
+                    m.medal,
+                    CASE
+                        WHEN m.medal IN ({non_stealable_list})
+                        THEN m.challenger_id
+                    END
+                ORDER BY m.created_at DESC
+            ) AS rn
+        FROM medals m
+        JOIN challengers c ON c.id = m.challenger_id
+        WHERE
+            (
+                m.medal IN ({challenge_scoped_list})
+                AND m.challenge_id = %s
+            )
+            OR (
+                m.medal NOT IN ({challenge_scoped_list})
+                AND m.challenge_week_id = %s
+            )
+    )
+    SELECT
+        medal_name,
+        medal_emoji,
+        discord_id
+    FROM ranked_medals
+    WHERE rn = 1
+    ORDER BY created_at, discord_id, medal_name;
+    """
+    return fetchall(sql, [challenge_id, challenge_week_id])
+
+
 def reconcile_medals(new_medals, current_medals):
     # green, gold, and first to green cannot be stolen
-    non_stealable = {"green", "red", "diamond", "gold", "first_to_green", "all_gold", "all_green"}
     medals = [
         {**m._asdict(), "steal": None}
         for m in new_medals
-        if m.medal_name in non_stealable
+        if m.medal_name in NON_STEALABLE_MEDALS
     ]
 
     latest_for_week_new = next(
