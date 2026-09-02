@@ -68,6 +68,7 @@ services:
       DB_PASSWORD: password
       TWILIO_AUTH_TOKEN: $TWILIO_AUTH_TOKEN
       LOGLEVEL: DEBUG
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
     volumes:
       - ./src:/src
   bot:
