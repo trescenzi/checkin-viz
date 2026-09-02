@@ -85,6 +85,8 @@ services:
       DISCORD_TOKEN: $DISCORD_TOKEN
       LOGLEVEL: DEBUG
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
+      DISCORD_DEVELOPMENT_MODE: "true"
+      DISCORD_SYNC_COMMANDS: "false"
 
   rq-cron:
     build:
@@ -101,6 +103,8 @@ services:
       DISCORD_TOKEN: $DISCORD_TOKEN
       LOGLEVEL: DEBUG
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
+      DISCORD_DEVELOPMENT_MODE: "true"
+      DISCORD_SYNC_COMMANDS: "false"
     depends_on:
       valkey:
         condition: service_healthy
@@ -120,6 +124,8 @@ services:
       DISCORD_TOKEN: $DISCORD_TOKEN
       LOGLEVEL: DEBUG
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
+      DISCORD_DEVELOPMENT_MODE: "true"
+      DISCORD_SYNC_COMMANDS: "false"
     depends_on:
       valkey:
         condition: service_healthy
