@@ -87,6 +87,9 @@ services:
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
       DISCORD_DEVELOPMENT_MODE: "true"
       DISCORD_SYNC_COMMANDS: "false"
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
+    volumes:
+      - ./src:/src
 
   rq-cron:
     build:
@@ -105,6 +108,7 @@ services:
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
       DISCORD_DEVELOPMENT_MODE: "true"
       DISCORD_SYNC_COMMANDS: "false"
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
     depends_on:
       valkey:
         condition: service_healthy
@@ -126,6 +130,7 @@ services:
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
       DISCORD_DEVELOPMENT_MODE: "true"
       DISCORD_SYNC_COMMANDS: "false"
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
     depends_on:
       valkey:
         condition: service_healthy

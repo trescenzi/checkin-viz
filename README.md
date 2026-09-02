@@ -62,6 +62,9 @@ The bot and web source code is volumed so changes to the app just require you to
 - Web: `docker container restart checkin-viz-web-1`
 - Bot: `docker container restart checkin-viz-bot-1`
 
+Changes to scheduled-task or worker code require rebuilding and recreating the
+`rq-cron` and `rq-worker` services.
+
 ### Discord safety in local development
 
 The local Compose configuration enables `DISCORD_DEVELOPMENT_MODE` for the bot
@@ -77,6 +80,11 @@ credentials. To intentionally synchronize commands from a development instance,
 set `DISCORD_SYNC_COMMANDS=true` for that run. This updates the shared Discord
 application when using production bot credentials, so a separate development bot
 application is preferred for command-registration work.
+
+The local web, bot, and worker services also enable
+`DEV_FALLBACK_TO_LATEST_CHALLENGE`. If a seed snapshot no longer contains a
+challenge active on today's date, local development uses the snapshot's latest
+challenge and week. Production continues to require date-active records.
 
 **NOTE**: When doing local development never test against the production db.
 
