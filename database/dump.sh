@@ -99,8 +99,8 @@ psql  -U $DB_USER -d projects -p 5432 -h $DB_HOST \
 echo "  ✓ current/challenger_challenges.csv"
 
 psql  -U $DB_USER -d projects -p 5432 -h $DB_HOST \
-  -c "copy (select * from medals
-  join challenges c on c.id = challenge_id
+  -c "copy (select m.* from medals m
+  join challenges c on c.id = m.challenge_id
   where (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date >= c.start
     and (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')::date <= c.end) to stdout with csv header" \
   > "$CURRENT_DIR/medals.csv"
@@ -143,4 +143,3 @@ echo "   └── medals.csv"
 echo "  ├── schema.dump     (table DDL)"
 echo "  └── functions.sql   (function definitions)"
 echo ""
-

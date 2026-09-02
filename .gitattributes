@@ -1,0 +1,4 @@
+*.sh text eol=lf
+/scripts/decrypt text eol=lf
+/scripts/encrypt text eol=lf
+/scripts/entrypoint text eol=lf
