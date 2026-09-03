@@ -64,6 +64,17 @@ The bot and web source code is volumed so changes to the app just require you to
 
 **NOTE**: When doing local development never test against the production db.
 
+## Production Version
+
+The production web service exposes its build date, build time, and Git SHA at
+[checkinviz.tcrez.dev/version](https://checkinviz.tcrez.dev/version). When
+diagnosing deployed behavior, compare that SHA with the commit that introduced
+the feature being tested.
+
+This endpoint reports the web service build. The Discord bot, `rq-cron`, and
+`rq-worker` run as separate services, so the endpoint alone does not confirm
+that those processes were rebuilt or restarted from the same commit.
+
 ## Discord Bot Commands
 
 The Discord bot supports a small set of slash commands to help manage challenges:
