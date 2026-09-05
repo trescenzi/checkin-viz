@@ -15,3 +15,7 @@ test_discord_message.py
 test_discord_setup.py
 run_local.sh
 src/huey.db
+database/seed/*.dump
+database/seed/**/*.csv
+database/seed/*.sql
+!database/seed/load.sql

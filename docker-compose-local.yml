@@ -68,6 +68,7 @@ services:
       DB_PASSWORD: password
       TWILIO_AUTH_TOKEN: $TWILIO_AUTH_TOKEN
       LOGLEVEL: DEBUG
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
     volumes:
       - ./src:/src
   bot:
@@ -84,6 +85,11 @@ services:
       DISCORD_TOKEN: $DISCORD_TOKEN
       LOGLEVEL: DEBUG
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
+      DISCORD_DEVELOPMENT_MODE: "true"
+      DISCORD_SYNC_COMMANDS: "false"
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
+    volumes:
+      - ./src:/src
 
   rq-cron:
     build:
@@ -100,6 +106,9 @@ services:
       DISCORD_TOKEN: $DISCORD_TOKEN
       LOGLEVEL: DEBUG
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
+      DISCORD_DEVELOPMENT_MODE: "true"
+      DISCORD_SYNC_COMMANDS: "false"
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
     depends_on:
       valkey:
         condition: service_healthy
@@ -119,6 +128,9 @@ services:
       DISCORD_TOKEN: $DISCORD_TOKEN
       LOGLEVEL: DEBUG
       ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
+      DISCORD_DEVELOPMENT_MODE: "true"
+      DISCORD_SYNC_COMMANDS: "false"
+      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
     depends_on:
       valkey:
         condition: service_healthy
