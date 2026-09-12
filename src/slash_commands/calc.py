@@ -117,16 +117,14 @@ class Modal(discord.ui.Modal):
         calToNextTier = self.calories_for_next_tier(challenger.bmr, calTier) - calories
         timeToNextTier = self.time_for_next_tier(timeTier) - time
 
-        embed = discord.Embed(title="Tier Results")
-        embed.add_field(
-            name="\u200b",
-            value=f"**Calories:** T{calTier}\n*+{calToNextTier:g} cals to next tier*",
-            inline=True,
-        )
-        embed.add_field(
-            name="\u200b",
-            value=f"**Time:** T{timeTier}\n*+{timeToNextTier:g} mins to next tier*",
-            inline=True,
+        embed = discord.Embed(
+            title="Tier Results",
+            description=(
+                f"**Calories:** T{calTier}\n"
+                f"*+{calToNextTier:g} cals to next tier*\n\n"
+                f"**Time:** T{timeTier}\n"
+                f"*+{timeToNextTier:g} mins to next tier*"
+            ),
         )
 
         selected_tier = f"T{max(calTier, timeTier)}"
