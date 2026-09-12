@@ -16,6 +16,7 @@ class SubmitCheckinView(discord.ui.View):
         super().__init__(timeout=600, disable_on_timeout=True)
         self.owner_id = owner_id
         self.tier = tier
+        self.children[0].label = f"Submit {tier} Check-in"
         self.timezone = ZoneInfo(timezone_name)
         self.created_date = datetime.now(self.timezone).date()
         self.expires_at = monotonic() + 600
@@ -116,14 +117,19 @@ class Modal(discord.ui.Modal):
         calToNextTier = self.calories_for_next_tier(challenger.bmr, calTier) - calories
         timeToNextTier = self.time_for_next_tier(timeTier) - time
 
-        embed = discord.Embed(title="Tier Results")
-        embed.add_field(name="Calories tier:", value=f"T{calTier}", inline=False)
-        embed.add_field(name="Time tier:", value=f"T{timeTier}", inline=False)
-        embed.add_field(name="Calories to next tier:", value=f"{calToNextTier} calories", inline=False)
-        embed.add_field(name="Time to next tier:", value=f"{timeToNextTier} minutes", inline=False)
+        rows = [
+            ("", "Calories", "Time"),
+            ("Your tier", f"T{calTier}", f"T{timeTier}"),
+            ("To next tier", f"{calToNextTier:g} kcal", f"{timeToNextTier:g} min"),
+        ]
+        widths = [max(len(row[column]) for row in rows) for column in range(3)]
+        table = "\n".join(
+            f"{label:<{widths[0]}}  {calories:^{widths[1]}}  {minutes:^{widths[2]}}".rstrip()
+            for label, calories, minutes in rows
+        )
+        embed = discord.Embed(title="Tier Results", description=f"```text\n{table}\n```")
 
         selected_tier = f"T{max(calTier, timeTier)}"
-        embed.add_field(name="Check-in to submit:", value=selected_tier, inline=False)
         embed.set_footer(text="Submit within 10 minutes and before midnight in your timezone.")
         view = SubmitCheckinView(id, selected_tier, challenger.tz)
         await interaction.response.send_message(embeds=[embed], ephemeral=True, view=view)

@@ -103,6 +103,7 @@ class CalculatorSubmissionTests(unittest.IsolatedAsyncioTestCase):
                 result = self.interaction.response.send_message.call_args.kwargs
                 self.assertTrue(result["ephemeral"])
                 self.assertEqual(result["view"].tier, expected)
+                self.assertEqual(result["view"].children[0].label, f"Submit {expected} Check-in")
                 result["view"].stop()
 
     async def test_invalid_calculator_input_has_no_submit_button(self):

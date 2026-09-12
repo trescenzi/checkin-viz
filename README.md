@@ -73,7 +73,7 @@ The Discord bot supports a small set of slash commands to help manage challenges
 - `/join`: Opt into the current challenge.
 - `/quit`: Opt out of the current challenge.
 - `/calculate_tier`: Open a modal to calculate your check-in tier based on calories and time.
-  The private result includes **Submit This Check-in**, which saves the higher of
+  The private result includes **Submit Tn Check-in**, which saves the higher of
   the two tiers and posts a bot confirmation mentioning you in the configured
   check-in channel. Medal reactions and replies credit your account. Results
   expire after 10 minutes or at midnight in your timezone; each result can be
