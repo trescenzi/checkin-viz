@@ -52,6 +52,22 @@ class CalculatorSubmissionTests(unittest.IsolatedAsyncioTestCase):
         save.assert_not_called()
         self.interaction.response.send_message.assert_awaited_once()
 
+    async def test_timeout_updates_private_result_and_disables_button(self):
+        self.view.result_interaction = self.interaction
+        with patch.object(calc, "save_checkin") as save:
+            await self.view.on_timeout()
+        save.assert_not_called()
+        self.assertTrue(self.button.disabled)
+        self.interaction.edit_original_response.assert_awaited_once_with(
+            content=self.view.expired_message, view=self.view
+        )
+
+    async def test_timeout_does_not_overwrite_submission_status(self):
+        self.view.result_interaction = self.interaction
+        self.view.attempted = True
+        await self.view.on_timeout()
+        self.interaction.edit_original_response.assert_not_awaited()
+
     async def test_expired_and_previous_day_results_do_not_save(self):
         for expired in (True, False):
             with self.subTest(expired=expired):
@@ -63,6 +79,11 @@ class CalculatorSubmissionTests(unittest.IsolatedAsyncioTestCase):
                 with patch.object(calc, "save_checkin") as save:
                     await self.button.callback(self.interaction)
                 save.assert_not_called()
+
+                self.assertEqual(
+                    self.interaction.edit_original_response.call_args.kwargs["content"],
+                    self.view.expired_message,
+                )
 
     async def test_database_error_does_not_publish_or_repeat_insert(self):
         with patch.object(calc, "save_checkin", side_effect=RuntimeError("DB unavailable")) as save:
