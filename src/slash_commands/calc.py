@@ -118,7 +118,6 @@ class Modal(discord.ui.Modal):
         timeToNextTier = self.time_for_next_tier(timeTier) - time
 
         embed = discord.Embed(
-            title="Tier Results",
             description=(
                 f"**Calories:** T{calTier}\n"
                 f"*+{calToNextTier:g} cals to next tier*\n\n"
@@ -130,7 +129,7 @@ class Modal(discord.ui.Modal):
         selected_tier = f"T{max(calTier, timeTier)}"
         view = SubmitCheckinView(id, selected_tier, challenger.tz)
         await interaction.response.send_message(
-            embeds=[embed], ephemeral=True, view=view
+            content="## Tier Results", embeds=[embed], ephemeral=True, view=view
         )
 
     def calories_for_next_tier(self, bmr, currentTier):
