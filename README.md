@@ -73,6 +73,12 @@ The Discord bot supports a small set of slash commands to help manage challenges
 - `/join`: Opt into the current challenge.
 - `/quit`: Opt out of the current challenge.
 - `/calculate_tier`: Open a modal to calculate your check-in tier based on calories and time.
+  The private result includes **Submit This Check-in**, which saves the higher of
+  the two tiers and posts a bot confirmation mentioning you in the configured
+  check-in channel. Medal reactions and replies credit your account. Results
+  expire after 10 minutes or at midnight in your timezone; each result can be
+  submitted once. If confirmation fails after saving, check `/chart` before
+  submitting again.
 - `/bmr`: Calculate and save your BMR. The command asks for sex, age, height, and weight, then saves only the resulting BMR and reports the change from your previous BMR if one was already set.
 - `/testpodium`: Test the podium/results message for the most recently ended challenge.
 - `/uncheckin`: Remove **your own** last tier check-in for **today**. If you have a check-in today, the bot will delete the most recent one and post a public message in the channel saying `@user's last check-in from today was removed.` so everyone can see that the check-in was undone.
