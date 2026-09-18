@@ -1,8 +1,18 @@
 from helpers import fetchone, fetchall
 from datetime import datetime, timedelta, date
+import os
 import pytz
 import logging
 import itertools
+
+
+def development_fallback_enabled():
+    return os.environ.get("DEV_FALLBACK_TO_LATEST_CHALLENGE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def points_so_far(challenge_id):
@@ -70,23 +80,35 @@ def challenge_weeks():
     ]
 
 
-def get_current_challenge_week(tz="America/New_York"):
+def get_current_challenge_week(tz="America/New_York", use_development_fallback=True):
     sql = """
         select * from challenge_weeks 
         where 
             week_of_year = extract(week from current_timestamp at time zone %s) and
             (current_timestamp at time zone 'America/New_York')::date >= start and (current_timestamp at time zone 'America/New_York')::date <= "end";
         """
-    return fetchone(sql, [tz])
+    challenge_week = fetchone(sql, [tz])
+    if (
+        challenge_week is None
+        and use_development_fallback
+        and development_fallback_enabled()
+    ):
+        challenge_week = fetchone(
+            'select * from challenge_weeks order by "end" desc limit 1'
+        )
+    return challenge_week
 
 
-def get_current_challenge():
-    return fetchone(
+def get_current_challenge(use_development_fallback=True):
+    challenge = fetchone(
         """
         select * from challenges where 
         (current_timestamp at time zone 'America/New_York')::date >= start and (current_timestamp at time zone 'America/New_York')::date <= "end";
     """
     )
+    if challenge is None and use_development_fallback and development_fallback_enabled():
+        challenge = fetchone('select * from challenges order by "end" desc limit 1')
+    return challenge
 
 
 def checkins_this_week(challenge_week_id):

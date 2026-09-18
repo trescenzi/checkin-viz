@@ -1,3 +1,7 @@
 #! /bin/bash
 
 sops --decrypt --input-type dotenv --output-type dotenv .env.sops > .env
+sops --decrypt database/seed/schema.dump.sops > database/seed/schema.dump
+for f in database/seed/base/*.csv.sops database/seed/current/*.csv.sops database/seed/functions.sql.sops; do
+  sops --decrypt "$f" >  "${f%.sops}"
+done

@@ -24,6 +24,59 @@ __VERSION_NUMBER__ = "__VERSION_NUMBER__"
 app = Flask(__name__)
 
 
+def development_fallback_enabled():
+    return os.environ.get("DEV_FALLBACK_TO_LATEST_CHALLENGE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def apply_development_date_fallback(current_challenge, current_challenge_week):
+    if not development_fallback_enabled():
+        return current_challenge, current_challenge_week, False
+
+    using_fallback = False
+    if current_challenge is None:
+        current_challenge = fetchone(
+            'select * from challenges order by "end" desc limit 1'
+        )
+        using_fallback = current_challenge is not None
+
+    if current_challenge is not None and (
+        current_challenge_week is None
+        or current_challenge_week.challenge_id != current_challenge.id
+    ):
+        current_challenge_week = fetchone(
+            'select * from challenge_weeks where challenge_id = %s order by "end" desc limit 1',
+            [current_challenge.id],
+        )
+        using_fallback = current_challenge_week is not None
+
+    return current_challenge, current_challenge_week, using_fallback
+
+
+def challenger_mulligan_for_display(challenger_id):
+    mulligan = fetchone(
+        'select cc.mulligan from challenger_challenges cc join challenges c on c.id = cc.challenge_id and c.start <= CURRENT_DATE and c."end" >= CURRENT_DATE where cc.challenger_id = %s',
+        [challenger_id],
+    )
+    if mulligan is not None or not development_fallback_enabled():
+        return mulligan
+
+    latest_challenge = fetchone(
+        'select id from challenges order by "end" desc limit 1'
+    )
+    if latest_challenge is None:
+        return None
+
+    return fetchone(
+        "select mulligan from challenger_challenges where challenger_id = %s and challenge_id = %s",
+        [challenger_id, latest_challenge.id],
+    )
+
+
 def get_version_number():
     return __VERSION_NUMBER__
 
@@ -180,7 +233,7 @@ def index():
             current_week,
             current_date,
         )
-        current_challenge = get_current_challenge()
+        current_challenge = get_current_challenge(use_development_fallback=False)
     else:
         logging.debug("Getting challenge with name: %s", challenge_name)
         current_challenge = fetchone(
@@ -188,7 +241,18 @@ def index():
         )
 
     logging.info("Current challenge: %s", current_challenge)
-    current_challenge_week = get_current_challenge_week()
+    current_challenge_week = get_current_challenge_week(
+        use_development_fallback=False
+    )
+    current_challenge, current_challenge_week, using_development_fallback = (
+        apply_development_date_fallback(current_challenge, current_challenge_week)
+    )
+    if using_development_fallback:
+        logging.info(
+            "Development fallback selected challenge %s and week %s",
+            current_challenge.id,
+            current_challenge_week.id,
+        )
     logging.info("Current challenge week: %s", current_challenge_week)
 
     if week_id is None:
@@ -220,6 +284,14 @@ def index():
     total_checkins = {x[1]: x[0] for x in points_so_far(current_challenge.id)}
     logging.info("TOTAL CHECKINS %s", total_checkins)
     logging.debug("WEEK: %s, LATEST: %s", week, latest)
+    possible_checkins = total_possible_checkins(current_challenge.id)[0]
+    possible_checkins_so_far = (
+        possible_checkins
+        if using_development_fallback
+        else total_possible_checkins_so_far(
+            current_challenge.id, current_challenge_week.id
+        )
+    )
     chart = checkin_chart(
         week,
         1000,
@@ -230,8 +302,8 @@ def index():
         total_points,
         achievements,
         total_checkins,
-        total_possible_checkins(current_challenge.id)[0],
-        total_possible_checkins_so_far(current_challenge.id, current_challenge_week.id),
+        possible_checkins,
+        possible_checkins_so_far,
         red_week_names=red_week_holders(week_id),
         diamond_week_names=diamond_week_holders(week_id),
     )
@@ -261,7 +333,9 @@ def index():
         current_week_index=week_index,
         current_week_start=current_challenge_weeks[week_index - 1][2].strftime("%m/%d"),
         current_week=current_week,
-        viewing_this_week=challenge_name == request.args.get("challenge") == None,
+        viewing_this_week=(
+            not using_development_fallback and challenge_name is None
+        ),
         green=selected_challenge_week.green,
     )
 
@@ -289,17 +363,14 @@ def challenger(challenger):
 
         with_psycopg(fn)
     c = fetchone("select * from challengers where name = %s", [challenger])
-    m = fetchone(
-        'select cc.mulligan from challenger_challenges cc join challenges c on c.id = cc.challenge_id and c.start <= CURRENT_DATE and c."end" >= CURRENT_DATE where cc.challenger_id = %s',
-        [c.id],
-    )
+    m = challenger_mulligan_for_display(c.id)
     logging.info("Challenger: %s, mulligan: %s", c.name, m)
     return render_template(
         "challenger.html",
         name=challenger,
         bmr=c.bmr,
         timezone=c.tz,
-        mulliganed=(m.mulligan != None),
+        mulliganed=(m is not None and m.mulligan is not None),
     )
 
 

@@ -39,6 +39,7 @@ services:
     platform: linux/amd64
     restart: unless-stopped
     entrypoint: poetry run rq cron tasks.py --url redis://valkey:6379
+    network_mode: host
     environment:
       DB_CONNECT_STRING: $DB_CONNECT_STRING
       DB_USER: $DB_USER
@@ -59,6 +60,7 @@ services:
     platform: linux/amd64
     restart: unless-stopped
     entrypoint: poetry run rq worker cron -u redis://valkey:6379
+    network_mode: host
     environment:
       DB_CONNECT_STRING: $DB_CONNECT_STRING
       DB_USER: $DB_USER
@@ -76,6 +78,7 @@ services:
     hostname: valkey
     image: valkey/valkey:9-alpine
     restart: unless-stopped
+    network_mode: host
     healthcheck:
       test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
       interval: 1s
