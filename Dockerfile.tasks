@@ -7,3 +7,5 @@ COPY pyproject.toml ./
 COPY src/*.py /
 
 RUN poetry install --no-interaction --no-ansi
+
+ENTRYPOINT [ "poetry", "run", "python3", "tasks.py"]
