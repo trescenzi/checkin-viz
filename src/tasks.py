@@ -200,10 +200,11 @@ async def main():
     if os.environ.get("TEST_CRON") == "1":
         schedule.every(1).minutes.do(run_async_job, example_task)
 
-    schedule.every().day.at("14:00", "America/New_York").do(run_async_job, opening_medal_roundup)
-    schedule.every().day.at("14:05", "America/New_York").do(run_async_job, auto_knockout)
-    schedule.every().monday.at("14:01", "America/New_York").do(run_async_job, challenge_start_message)
-    schedule.every().monday.at("14:02", "America/New_York").do(run_async_job, is_green_week)
+    schedule.every().day.at("10:05", "America/New_York").do(run_async_job, auto_knockout)
+    # TODO: this likely should just fire on tuesdays
+    schedule.every().day.at("10:00", "America/New_York").do(run_async_job, opening_medal_roundup)
+    schedule.every().monday.at("10:00", "America/New_York").do(run_async_job, challenge_start_message)
+    schedule.every().monday.at("10:02", "America/New_York").do(run_async_job, is_green_week)
 
     while True:
         logging.debug("running scheduled jobs")
