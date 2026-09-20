@@ -1,4 +1,5 @@
-from rq import cron
+import schedule
+import time
 from helpers import fetchall
 from green import determine_if_green
 from auto_knockout import (
@@ -9,17 +10,27 @@ from auto_knockout import (
 import discord
 from discord_bot import bot
 import os
-
-# from mulligan import check_last_week_for_mulligan_necessity, insert_mulligan_for
 import logging
 import random
 from functools import reduce
+import asyncio
+# from mulligan import check_last_week_for_mulligan_necessity, insert_mulligan_for
 
 logging.basicConfig(level="DEBUG")
-from rq import cron
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DISCORD_CHANNEL_ID = os.environ.get("ALLOWED_MESSAGE_CHANNEL_ID")
+
+running_jobs = set()
+
+def run_async_job(job):
+    logging.debug("Running job")
+    task = asyncio.create_task(job())
+    running_jobs.add(task)
+    task.add_done_callback(running_jobs.discard)
+    logging.debug("Job is running")
+    # add a timeout just in case to avoid forever blocking
+
 
 
 async def get_channel():
@@ -35,16 +46,13 @@ async def get_channel():
 
 async def example_task():
     print("-- RUNNING EXAMPLE TASK --")
-    await send_bot_message("test")
+    channel = await get_channel()
+    if channel is None:
+        logging.warning("Cannot send opening medal roundup: channel not found")
+        return
+    await channel.send("test message")
     print("-- RUNNING EXAMPLE TASK --")
 
-
-# if os.environ.get("TEST_CRON") == "1":
-# cron.register(
-# example_task,
-# queue_name='cron',
-# cron='* * * * *'
-# )
 
 yes_gifs = [
     "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjF6MzM5NGh6ZHFxcGs1dDh2eGpvenR3ZjJ2azVna2d3Z2NzbDQ1cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/HUkOv6BNWc1HO/giphy.gif",
@@ -69,7 +77,6 @@ async def is_green_week():
         )
 
 
-cron.register(is_green_week, queue_name="cron", cron="2 14 * * 1")
 
 
 async def challenge_start_message():
@@ -110,7 +117,6 @@ async def challenge_start_message():
     await channel.send(message)
 
 
-cron.register(challenge_start_message, queue_name="cron", cron="0 14 * * 1")
 
 
 async def auto_knockout():
@@ -137,7 +143,6 @@ async def auto_knockout():
     await channel.send(message)
 
 
-cron.register(auto_knockout, queue_name="cron", cron="5 14 * * *")
 
 
 async def opening_medal_roundup():
@@ -173,7 +178,6 @@ async def opening_medal_roundup():
     await channel.send(message)
 
 
-cron.register(opening_medal_roundup, queue_name="cron", cron="0 14 * * *")
 
 # def check_mulligans():
 #    logging.info("checking for mulligans")
@@ -190,3 +194,23 @@ cron.register(opening_medal_roundup, queue_name="cron", cron="0 14 * * *")
 #    logging.info("needs a mulligan: %s" % needing_of_mulligan)
 #    for name, cwid in needing_of_mulligan:
 #        insert_mulligan_for(name, cwid)
+
+
+async def main():
+    if os.environ.get("TEST_CRON") == "1":
+        schedule.every(1).minutes.do(run_async_job, example_task)
+
+    schedule.every().day.at("10:05", "America/New_York").do(run_async_job, auto_knockout)
+    # TODO: this likely should just fire on tuesdays
+    schedule.every().day.at("10:00", "America/New_York").do(run_async_job, opening_medal_roundup)
+    schedule.every().monday.at("10:00", "America/New_York").do(run_async_job, challenge_start_message)
+    schedule.every().monday.at("10:02", "America/New_York").do(run_async_job, is_green_week)
+
+    while True:
+        logging.debug("running scheduled jobs")
+        schedule.run_pending()
+        logging.debug("ran scheduled jobs")
+        await asyncio.sleep(20)
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -18,15 +18,6 @@ services:
       start_period: 30s
       timeout: 10s
 
-  valkey:
-    hostname: valkey
-    image: valkey/valkey:9-alpine
-    healthcheck:
-      test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
-      interval: 1s
-      timeout: 3s
-      retries: 5
-
   seed:
     build:
       context: .
@@ -91,14 +82,14 @@ services:
     volumes:
       - ./src:/src
 
-  rq-cron:
+  tasks:
     build:
       context: .
-      dockerfile: Dockerfile.rq
+      dockerfile: Dockerfile.tasks
     platform: linux/amd64
     restart: unless-stopped
-    entrypoint: poetry run rq cron tasks.py --url redis://valkey:6379
     environment:
+      TZ: America/New_York
       DB_CONNECT_STRING: postgres://postgres:password@postgres/projects
       DB_USER: postgres
       DB_HOST: postgres
@@ -109,28 +100,3 @@ services:
       DISCORD_DEVELOPMENT_MODE: "true"
       DISCORD_SYNC_COMMANDS: "false"
       DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
-    depends_on:
-      valkey:
-        condition: service_healthy
-
-  rq-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.rq
-    platform: linux/amd64
-    restart: unless-stopped
-    entrypoint: poetry run rq worker cron -u redis://valkey:6379
-    environment:
-      DB_CONNECT_STRING: postgres://postgres:password@postgres/projects
-      DB_USER: postgres
-      DB_HOST: postgres
-      DB_PASSWORD: password
-      DISCORD_TOKEN: $DISCORD_TOKEN
-      LOGLEVEL: DEBUG
-      ALLOWED_MESSAGE_CHANNEL_ID: 1421955269759336490
-      DISCORD_DEVELOPMENT_MODE: "true"
-      DISCORD_SYNC_COMMANDS: "false"
-      DEV_FALLBACK_TO_LATEST_CHALLENGE: "true"
-    depends_on:
-      valkey:
-        condition: service_healthy
