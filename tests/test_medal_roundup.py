@@ -100,6 +100,21 @@ class TestShouldSuppressMedalAnnouncements(unittest.TestCase):
             )
         )
 
+    def test_do_not_resume_suppression_after_utc_midnight(self):
+        # 2026-04-29 03:00 UTC is still challenge day 2 in New York, but the
+        # roundup cutoff was 13 hours earlier. UTC midnight must not reopen it.
+        self.assertFalse(
+            should_suppress_medal_announcements(
+                self.week_start, utc_dt(2026, 4, 29, 3, 0)
+            )
+        )
+        # The same instant expressed in New York should agree.
+        self.assertFalse(
+            should_suppress_medal_announcements(
+                self.week_start, ny_dt(2026, 4, 28, 23, 0)
+            )
+        )
+
     def test_do_not_suppress_on_day_two_plus(self):
         self.assertFalse(
             should_suppress_medal_announcements(
