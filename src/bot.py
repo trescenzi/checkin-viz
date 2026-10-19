@@ -2,6 +2,7 @@ import discord
 from discord.ui import Modal, Select, InputText, Button
 import re
 import logging
+from io import BytesIO
 from helpers import fetchall, fetchone, with_psycopg
 from base_queries import *
 from green import determine_if_green
@@ -12,7 +13,7 @@ import slash_commands.quit as quit_slash
 import slash_commands.join as join_slash
 import slash_commands.calc
 import slash_commands.bmr
-from chart import checkin_chart, diamond_week_holders, red_week_holders, week_heat_map_from_checkins, write_og_image
+from chart import checkin_chart, diamond_week_holders, red_week_holders, week_heat_map_from_checkins, render_chart_png
 from rule_sets import calculate_total_score
 from discord_bot import bot
 from checkin_submission import save_checkin, send_checkin_feedback
@@ -49,8 +50,23 @@ async def on_ready():
 
 @bot.slash_command(name="chart", description="Display the current chart")
 async def get_chart(ctx: discord.ApplicationContext):
+    await ctx.defer(ephemeral=True)
+    try:
+        await generate_current_chart(ctx)
+    except Exception:
+        logging.exception("Failed to generate or send the current chart")
+        await ctx.followup.send(
+            "I couldn't generate the chart. Please try /chart again in a moment.",
+            ephemeral=True,
+        )
+
+
+async def generate_current_chart(ctx):
     current_challenge = get_current_challenge()
     selected_challenge_week = get_current_challenge_week()
+    if current_challenge is None or selected_challenge_week is None:
+        await ctx.followup.send("There is no active challenge week right now.", ephemeral=True)
+        return
     checkins = checkins_this_week(selected_challenge_week.id)
     total_points = calculate_total_score(current_challenge.id)
     week, latest, achievements = week_heat_map_from_checkins(
@@ -81,8 +97,7 @@ async def get_chart(ctx: discord.ApplicationContext):
         red_week_names=red_week_holders(selected_challenge_week.id),
         diamond_week_names=diamond_week_holders(selected_challenge_week.id),
     )
-    write_og_image(chart, selected_challenge_week.id)
-    await send_current_chart(ctx)
+    await send_current_chart(ctx, chart, selected_challenge_week.id)
 
 
 @bot.slash_command(name="green", description="Check if it's a green week")
@@ -249,11 +264,21 @@ async def on_message(message):
     await send_checkin_feedback(message, tier, saved)
 
 
-async def send_current_chart(message):
-    challenge_week = get_current_challenge_week()
-    await message.send_response(
-        file=discord.File(open(f"/src/static/preview-{challenge_week.id}.png", "rb")),
-        ephemeral=True,
-    )
+async def send_current_chart(ctx, chart, challenge_week_id):
+    # Explicit embeds avoid the stale standalone-attachment preview on mobile.
+    # Use a plain filename shared by the upload and its attachment:// reference.
+    filename = f"chart-{challenge_week_id}.png"
+    embed = discord.Embed(title="Current check-in chart")
+    embed.set_image(url=f"attachment://{filename}")
+    with BytesIO(render_chart_png(chart)) as image:
+        attachment = discord.File(
+            image,
+            filename=filename,
+            description="Current challenge check-in chart",
+        )
+        try:
+            await ctx.followup.send(file=attachment, embed=embed, ephemeral=True)
+        finally:
+            attachment.close()
 if __name__ == "__main__":
     bot.run(os.getenv("DISCORD_TOKEN"))

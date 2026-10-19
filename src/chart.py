@@ -413,6 +413,11 @@ def write_points(dwg, chart, total_points, x, y):
         dwg.add(text)
 
 
+def render_chart_png(svg):
+    """Render a complete PNG for uploading without a shared filesystem path."""
+    return cairosvg.svg2png(bytestring=svg.encode("utf-8"))
+
+
 def write_og_image(svg, week):
     try:
         output = "./static/preview-{week}.png".format(week=week)
