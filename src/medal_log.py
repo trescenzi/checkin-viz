@@ -13,6 +13,8 @@ SELECT
      stolen_c.name AS stolen_checkin_challenger_name,
      stolen_c.discord_id as stolen_discord_id,
      stolen_ci.tier as stolen_checkin_tier,
+     personal_previous.tier AS personal_previous_tier,
+     personal_previous.record_date AS personal_previous_date,
      m.checkin_id
  FROM
      medals m
@@ -24,6 +26,20 @@ SELECT
      checkins stolen_ci ON stolen_ci.id = m.steal
  LEFT JOIN
      challengers stolen_c ON stolen_c.id = stolen_ci.challenger
+ LEFT JOIN LATERAL (
+     SELECT previous.tier,
+            (previous.time AT TIME ZONE COALESCE(previous.tz, 'America/New_York'))::date AS record_date
+     FROM checkins previous
+     WHERE m.medal = 'highest_tier_personal'
+       AND previous.challenger = ci.challenger
+       AND (previous.time, previous.id) < (ci.time, ci.id)
+       AND previous.tier ~ '^T[0-9]+$'
+       AND NOT EXISTS (
+           SELECT 1 FROM challenger_challenges cc WHERE cc.mulligan = previous.id
+       )
+     ORDER BY SUBSTRING(previous.tier FROM 2)::INT DESC, previous.time, previous.id
+     LIMIT 1
+ ) personal_previous ON TRUE
  WHERE
      m.challenge_week_id = %s
  ORDER BY

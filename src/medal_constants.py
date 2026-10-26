@@ -1,7 +1,7 @@
 # Shared medal display/constants with no DB dependencies.
 
 NON_STEALABLE_MEDALS = frozenset(
-    {"green", "red", "diamond", "gold", "first_to_green", "all_gold", "all_green"}
+    {"green", "red", "diamond", "gold", "first_to_green", "all_gold", "all_green", "highest_tier_personal"}
 )
 
 CHALLENGE_SCOPED_MEDALS = frozenset(
@@ -15,6 +15,7 @@ CHALLENGE_SCOPED_MEDALS = frozenset(
 )
 
 nice_medal_names = {
+    "highest_tier_personal": "Highest Ever Personal Tier",
     "highest_tier_challenge": "Highest Overall Tier",
     "highest_tier_week": "Highest Weekly Tier",
     "gold": "Gold Week",

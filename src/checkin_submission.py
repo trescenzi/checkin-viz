@@ -49,20 +49,40 @@ async def send_checkin_feedback(message, tier, saved):
         for medal in relevant_medals:
             await message.add_reaction(medal.medal_emoji)
 
-        # Suppress replies until after Opening Medal Roundup on challenge day 2.
+        # Personal records are announced immediately, including during the
+        # early-week silence window for competitive medals.
         if should_suppress_medal_announcements(saved.week.start):
-            logging.info(
-                "DISCORD: skipping medal reply before opening roundup window ends"
-            )
-            return
+            relevant_medals = [
+                medal for medal in relevant_medals
+                if getattr(medal, "medal_name", None) == "highest_tier_personal"
+            ]
+            if not relevant_medals:
+                logging.info("DISCORD: skipping medal reply before opening roundup window ends")
+                return
 
         # Group medals by user, action type, and (for steals) the person they stole from
         grouped_medals = defaultdict(list)
+        personal_messages = []
 
         for medal in relevant_medals:
             nice_name = describe_medal(medal.medal_name)
             emoji = medal.medal_emoji or ""
             medal_display = f"{emoji} __**{nice_name}**__".strip()
+
+            if medal.medal_name == "highest_tier_personal":
+                record_message = (
+                    f"<@{medal.discord_id}> earned {medal_display} "
+                    f"with a {medal.checkin_tier} check-in"
+                )
+                if medal.personal_previous_tier is not None:
+                    previous_date = medal.personal_previous_date
+                    date_text = f"{previous_date:%B} {previous_date.day}, {previous_date:%Y}"
+                    record_message += (
+                        f", exceeding their {medal.personal_previous_tier} "
+                        f"check-in on {date_text}"
+                    )
+                personal_messages.append(record_message + "!")
+                continue
 
             # Check if this medal was stolen (has a previous holder)
             if medal.stolen_checkin_challenger_name and medal.stolen_discord_id is not None:
@@ -85,7 +105,7 @@ async def send_checkin_feedback(message, tier, saved):
             # Return 0 for "earned", 1 for others to ensure earned comes first
             return (0 if action_type == "earned" else 1, discord_id, action_type, stolen_discord_id or "")
 
-        medal_message = ""
+        medal_message = "\n\n".join(personal_messages)
         for (discord_id, action_type, stolen_discord_id), medal_list in sorted(grouped_medals.items(), key=sort_key):
             # Format medal list with commas and "and"
             if len(medal_list) == 1:

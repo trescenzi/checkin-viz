@@ -4,6 +4,7 @@ from datetime import datetime
 from helpers import fetchone, fetchall
 from base_queries import get_challenges
 from medals import PODIUM_EMOJIS
+from medal_constants import NON_STEALABLE_MEDALS
 from rule_sets import calculate_total_score
 
 
@@ -84,7 +85,8 @@ def get_final_medal_holders_per_week(challenge_id):
     in the same week, so we partition by medal+week+challenger to get all recipients.
     For stealable medals, we partition by medal+week to get only the final holder.
     """
-    sql = """
+    non_stealable_list = ", ".join(f"'{name}'" for name in sorted(NON_STEALABLE_MEDALS))
+    sql = f"""
     WITH ranked_medals AS (
         SELECT
             m.*,
@@ -95,9 +97,10 @@ def get_final_medal_holders_per_week(challenge_id):
                     -- For non-stealable medals, partition by challenger too (multiple people can earn)
                     -- For stealable medals, only partition by medal+week (one final holder)
                     CASE 
-                        WHEN m.medal IN ('green', 'red', 'diamond', 'gold', 'first_to_green') 
+                        WHEN m.medal IN ({non_stealable_list})
                         THEN m.challenger_id 
-                    END
+                    END,
+                    CASE WHEN m.medal = 'highest_tier_personal' THEN m.checkin_id END
                 ORDER BY m.created_at DESC
             ) as rn
         FROM medals m
@@ -357,6 +360,10 @@ def gather_achievements(challenge_id):
             )
         )
 
+    personal_records = week_achievements.get("highest_tier_personal", {})
+    if personal_records:
+        lines.append(render_achievement_line("🏆", "Highest Ever Personal Tier", personal_records))
+
     # Group 2: Medal achievements
     gold_week = week_achievements.get("gold", {})
     first_to_green = week_achievements.get("first_to_green", {})
@@ -367,7 +374,7 @@ def gather_achievements(challenge_id):
     all_green = challenge_achievements.get("all_green", {})
 
     # Add blank line between groups if both exist
-    if (highest_tier_challenge_details or highest_tier_week) and (
+    if (highest_tier_challenge_details or highest_tier_week or personal_records) and (
         gold_week or first_to_green or green_week or red_week or diamond_week or all_gold or all_green
     ):
         lines.append(None)  # Marker for blank line

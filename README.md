@@ -90,6 +90,34 @@ challenge and week. Production continues to require date-active records.
 
 ## Discord Bot Commands
 
+### Personal tier records
+
+The **🏆 Highest Ever Personal Tier** medal is earned on a participant's first
+real check-in and whenever a check-in strictly exceeds their previous highest
+numeric tier across **all challenges**. Existing check-in history is the baseline;
+starting a new challenge does not reset the record. Ties and lower tiers do not
+earn it again. Automatic mulligan check-ins do not count.
+
+The medal is saved in the existing medal history and cannot be stolen. Both typed
+and calculator-submitted check-ins announce it immediately, including during the
+early-week silence window for other medals. Announcements mention the participant
+and include the new tier; when there is a previous record, they also include its
+tier and original local check-in date. If that tier was achieved more than once,
+the date it was first achieved is used. Removing a check-in with `/uncheckin`
+also removes its medal, and future comparisons use the remaining history.
+
+Examples:
+
+- `@user earned 🏆 Highest Ever Personal Tier with a T5 check-in!`
+- `@user earned 🏆 Highest Ever Personal Tier with a T12 check-in, exceeding their T9 check-in on January 2, 2025!`
+
+No database migration or historical announcement replay is required. To run the
+PostgreSQL regression tests, set `TEST_DB_CONNECT_STRING` to a local test database
+and run `poetry run python -m unittest discover -s tests`. These tests use temporary
+tables and roll back all fixture data.
+
+### Commands
+
 The Discord bot supports a small set of slash commands to help manage challenges:
 
 - `/chart`: Display the current challenge chart as an image.
