@@ -180,7 +180,7 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
                         WHEN m.medal IN ({non_stealable_list})
                         THEN m.challenger_id
                     END
-                ORDER BY m.created_at DESC
+                ORDER BY m.created_at DESC, m.id DESC
             ) AS rn
         FROM medals m
         JOIN challengers c ON c.id = m.challenger_id
@@ -334,6 +334,25 @@ def reconcile_medals(new_medals, current_medals):
     )
 
     return medals
+
+
+def get_personal_tier_record(challenger_id):
+    """Highest real tier across all challenges and the date first achieved."""
+    return fetchone(
+        """
+        SELECT ci.tier,
+               (ci.time AT TIME ZONE COALESCE(ci.tz, 'America/New_York'))::date AS record_date
+        FROM checkins ci
+        WHERE ci.challenger = %s
+          AND ci.tier ~ '^T[0-9]+$'
+          AND NOT EXISTS (
+              SELECT 1 FROM challenger_challenges cc WHERE cc.mulligan = ci.id
+          )
+        ORDER BY SUBSTRING(ci.tier FROM 2)::INT DESC, ci.time, ci.id
+        LIMIT 1
+        """,
+        [challenger_id],
+    )
 
 
 def highest_tier_personal(challenge_week_id, execute=False):
