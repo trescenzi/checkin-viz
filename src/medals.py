@@ -19,6 +19,7 @@ medal_metadata = {
     "all_green": {"group": "A", "difficulty": 2},
     "highest_tier_challenge": {"group": "B", "difficulty": 1},
     "highest_tier_week": {"group": "B", "difficulty": 2},
+    "highest_tier_personal": {"group": "B", "difficulty": 3},
     "gold": {"group": "C", "difficulty": 3},
     "green": {"group": "C", "difficulty": 4},
     "red": {"group": "C", "difficulty": 2},
@@ -59,6 +60,7 @@ def update_medal_table(challenge_id, challenge_week_id):
 def all_medals(challenge_id, challenge_week_id):
     return medals(
         highest_tier_week(challenge_week_id),
+        highest_tier_personal(challenge_week_id),
         earliest_for_week(challenge_week_id),
         latest_for_week(challenge_week_id),
         gold(challenge_week_id),
@@ -151,7 +153,7 @@ insert into medals
 
 def get_current_week_medal_standings(challenge_id, challenge_week_id):
     """
-    Current medal holders for the opening roundup.
+    Current medal holders for the opening roundup and medal case.
 
     Week-scoped medals: rows for this challenge week.
     Challenge-scoped medals: current holders across the whole challenge
@@ -170,6 +172,9 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
             m.medal AS medal_name,
             m.emoji AS medal_emoji,
             c.discord_id,
+            c.name AS challenger_name,
+            ci.tier AS checkin_tier,
+            ci.time AT TIME ZONE COALESCE(ci.tz, 'America/New_York') AS checkin_time,
             m.created_at,
             ROW_NUMBER() OVER (
                 PARTITION BY
@@ -178,10 +183,11 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
                         WHEN m.medal IN ({non_stealable_list})
                         THEN m.challenger_id
                     END
-                ORDER BY m.created_at DESC
+                ORDER BY m.created_at DESC, m.id DESC
             ) AS rn
         FROM medals m
         JOIN challengers c ON c.id = m.challenger_id
+        LEFT JOIN checkins ci ON ci.id = m.checkin_id
         WHERE
             (
                 m.medal IN ({challenge_scoped_list})
@@ -195,7 +201,10 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
     SELECT
         medal_name,
         medal_emoji,
-        discord_id
+        discord_id,
+        challenger_name,
+        checkin_tier,
+        checkin_time
     FROM ranked_medals
     WHERE rn = 1
     ORDER BY created_at, discord_id, medal_name;
@@ -332,6 +341,70 @@ def reconcile_medals(new_medals, current_medals):
     )
 
     return medals
+
+
+def get_personal_tier_record(challenger_id):
+    """Highest real tier across all challenges and the date first achieved."""
+    return fetchone(
+        """
+        SELECT ci.tier,
+               (ci.time AT TIME ZONE COALESCE(ci.tz, 'America/New_York'))::date AS record_date
+        FROM checkins ci
+        WHERE ci.challenger = %s
+          AND ci.tier ~ '^T[0-9]+$'
+          AND NOT EXISTS (
+              SELECT 1 FROM challenger_challenges cc WHERE cc.mulligan = ci.id
+          )
+        ORDER BY SUBSTRING(ci.tier FROM 2)::INT DESC, ci.time, ci.id
+        LIMIT 1
+        """,
+        [challenger_id],
+    )
+
+
+def highest_tier_personal(challenge_week_id, execute=False):
+    """Record-breaking check-ins this week, compared with all previous challenges.
+
+    Compute history before filtering to the requested week. The check-in ID
+    breaks timestamp ties deterministically; equal tiers never set a new record.
+    Automatic mulligans are not personal achievements.
+    """
+    sql = """
+WITH personal_history AS (
+    SELECT ci.*,
+           MAX(SUBSTRING(ci.tier FROM 2)::INT) OVER (
+               PARTITION BY ci.challenger
+               ORDER BY ci.time, ci.id
+               ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+           ) AS previous_tier
+    FROM checkins ci
+    WHERE ci.tier ~ '^T[0-9]+$'
+      AND ci.challenger IN (
+          SELECT challenger FROM checkins
+          WHERE challenge_week_id = %(challenge_week_id)s
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM challenger_challenges cc WHERE cc.mulligan = ci.id
+      )
+)
+SELECT c.name,
+       c.id AS challenger_id,
+       ci.tier,
+       ci.id AS checkin_id,
+       ci.challenge_week_id,
+       ci.time AT TIME ZONE COALESCE(ci.tz, 'America/New_York') AS time,
+       'highest_tier_personal' AS medal_name,
+       '🏆' AS medal_emoji
+FROM personal_history ci
+JOIN challengers c ON c.id = ci.challenger
+WHERE ci.challenge_week_id = %(challenge_week_id)s
+  AND (ci.previous_tier IS NULL OR SUBSTRING(ci.tier FROM 2)::INT > ci.previous_tier)
+ORDER BY ci.time, ci.id
+"""
+    parameters = {"challenge_week_id": challenge_week_id}
+    if execute:
+        return fetchall(sql, parameters)
+    return sql, parameters
 
 
 def highest_tier_week(challenge_week_id, execute=False):
