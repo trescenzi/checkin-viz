@@ -121,8 +121,9 @@ tables and roll back all fixture data.
 The Discord bot supports a small set of slash commands to help manage challenges:
 
 - `/chart`: Display the current challenge chart as an image.
-- `/medal-case`: Privately list your currently held stealable medals for the current
-  challenge/week, plus your all-time highest personal tier and the date it was
+- `/medal-case`: Privately list all current stealable medal holders for the current
+  challenge/week, with your own medals first and each holder's tier or original
+  local check-in time, plus your all-time highest personal tier and the date it was
   first achieved. The personal record is still shown between challenges, even
   if it predates the introduction of the personal-record medal.
 - `/green`: Check whether the current week is a green week.

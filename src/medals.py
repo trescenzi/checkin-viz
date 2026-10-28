@@ -153,7 +153,7 @@ insert into medals
 
 def get_current_week_medal_standings(challenge_id, challenge_week_id):
     """
-    Current medal holders for the opening roundup.
+    Current medal holders for the opening roundup and medal case.
 
     Week-scoped medals: rows for this challenge week.
     Challenge-scoped medals: current holders across the whole challenge
@@ -172,6 +172,9 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
             m.medal AS medal_name,
             m.emoji AS medal_emoji,
             c.discord_id,
+            c.name AS challenger_name,
+            ci.tier AS checkin_tier,
+            ci.time AT TIME ZONE COALESCE(ci.tz, 'America/New_York') AS checkin_time,
             m.created_at,
             ROW_NUMBER() OVER (
                 PARTITION BY
@@ -184,6 +187,7 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
             ) AS rn
         FROM medals m
         JOIN challengers c ON c.id = m.challenger_id
+        LEFT JOIN checkins ci ON ci.id = m.checkin_id
         WHERE
             (
                 m.medal IN ({challenge_scoped_list})
@@ -197,7 +201,10 @@ def get_current_week_medal_standings(challenge_id, challenge_week_id):
     SELECT
         medal_name,
         medal_emoji,
-        discord_id
+        discord_id,
+        challenger_name,
+        checkin_tier,
+        checkin_time
     FROM ranked_medals
     WHERE rn = 1
     ORDER BY created_at, discord_id, medal_name;

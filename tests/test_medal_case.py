@@ -1,7 +1,7 @@
 import os
 import sys
 import unittest
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace as NS
 from unittest.mock import AsyncMock, patch
@@ -14,8 +14,10 @@ import medals
 import test_personal_tier_medal as fixtures
 
 
-def standing(medal_name, owner="123", emoji="💪"):
-    return NS(medal_name=medal_name, discord_id=owner, medal_emoji=emoji)
+def standing(medal_name, owner="123", emoji="💪", tier="T15", when=None):
+    return NS(medal_name=medal_name, discord_id=owner, medal_emoji=emoji,
+              challenger_name="Participant", checkin_tier=tier,
+              checkin_time=when or datetime(2026, 10, 25, 23, 46))
 
 
 class MedalCaseCommandTests(unittest.IsolatedAsyncioTestCase):
@@ -24,7 +26,7 @@ class MedalCaseCommandTests(unittest.IsolatedAsyncioTestCase):
         self.challenger = NS(id=42, tz="Asia/Tokyo")
         self.week = NS(id=7, challenge_id=2)
 
-    async def test_private_case_contains_only_users_current_stealable_medals(self):
+    async def test_private_case_shows_all_holders_with_own_medals_first(self):
         record = NS(tier="T15", record_date=date(2026, 10, 25))
         rows = [
             standing("highest_tier_week"), standing("earliest_for_week", "456"),
@@ -46,11 +48,15 @@ class MedalCaseCommandTests(unittest.IsolatedAsyncioTestCase):
         content = self.ctx.followup.send.call_args.args[0]
         self.assertTrue(self.ctx.followup.send.call_args.kwargs["ephemeral"])
         self.assertIn("Highest Weekly Tier", content)
-        self.assertIn("Highest Ever Personal Tier: T15", content)
+        self.assertIn("- 🏆 T15 (October 25, 2026)", content)
         self.assertIn("October 25, 2026", content)
-        self.assertNotIn("Earliest Weekly Check-in", content)
+        self.assertIn("**Highest Weekly Tier**\n  - <@123> (T15)", content)
+        self.assertIn("**Earliest Weekly Check-in**\n  - <@456> (11:46PM)", content)
+        self.assertLess(content.index("Highest Weekly Tier"), content.index("Earliest Weekly Check-in"))
+        self.assertTrue(content.startswith("## Medal Case\n\n**Currently Held**"))
+        self.assertIn("**Your Personal Tier Record**\n- 🏆 T15 (October 25, 2026)", content)
         self.assertNotIn("Green Week", content)
-        self.assertEqual(content.count("Highest Ever Personal Tier"), 1)
+        self.assertNotIn("Highest Ever Personal Tier", content)
 
     async def test_record_is_shown_between_challenges(self):
         with patch.object(medal_case, "challenger_by_discord_id", return_value=self.challenger), patch.object(
@@ -62,7 +68,7 @@ class MedalCaseCommandTests(unittest.IsolatedAsyncioTestCase):
         holders.assert_not_called()
         content = self.ctx.followup.send.call_args.args[0]
         self.assertIn("no active challenge week", content)
-        self.assertIn("Highest Ever Personal Tier: T0", content)
+        self.assertIn("**Your Personal Tier Record**\n- 🏆 T0 (January 2, 2025)", content)
         self.assertTrue(self.ctx.followup.send.call_args.kwargs["ephemeral"])
 
     async def test_unregistered_user_gets_private_explanation(self):
@@ -84,8 +90,22 @@ class MedalCaseCommandTests(unittest.IsolatedAsyncioTestCase):
 
     def test_empty_case_has_clear_messages(self):
         content = medal_case.build_medal_case([], None)
-        self.assertIn("aren't currently holding any stealable medals", content)
+        self.assertIn("No stealable medals are currently held", content)
         self.assertIn("No personal tier record yet", content)
+
+    def test_time_details_use_twelve_hour_clock_including_midnight_and_noon(self):
+        rows = [
+            standing("earliest_for_week", when=datetime(2026, 10, 25, 0, 5)),
+            standing("latest_for_week", when=datetime(2026, 10, 25, 12, 0)),
+        ]
+        content = medal_case.build_medal_case(rows, None, viewer_discord_id=123)
+        self.assertIn("(12:05AM)", content)
+        self.assertIn("(12:00PM)", content)
+
+    def test_holder_without_discord_account_uses_name(self):
+        content = medal_case.build_medal_case([standing("highest_tier_week", owner=None)], None)
+        self.assertIn("\n  - Participant (T15)", content)
+        self.assertNotIn("<@None>", content)
 
     async def test_command_is_registered_with_requested_name(self):
         import bot
@@ -129,6 +149,16 @@ class MedalCasePostgresTests(unittest.TestCase):
         self.award("highest_tier_week", 2, 2)
         rows = medals.get_current_week_medal_standings(2, 2)
         self.assertEqual([(row.medal_name, row.discord_id) for row in rows], [("highest_tier_week", "456")])
+        self.assertEqual(rows[0].checkin_tier, "T6")
+        self.assertEqual(rows[0].challenger_name, "Second")
+        self.assertEqual(rows[0].checkin_time, datetime(2026, 1, 2, 7, 0))
+
+    def test_time_medal_uses_checkin_timezone_not_current_participant_timezone(self):
+        self.checkin(1, "T5", "2026-01-02T07:46Z", tz="America/Los_Angeles")
+        self.award("latest_for_week", 1, 1)
+        rows = medals.get_current_week_medal_standings(2, 2)
+        self.assertEqual(rows[0].checkin_time, datetime(2026, 1, 1, 23, 46))
+        self.assertIn("(11:46PM)", medal_case.build_medal_case(rows, None))
 
     def test_old_weekly_medals_expire_but_challenge_medals_carry_between_weeks(self):
         self.checkin(1, "T5", "2026-01-01T12:00Z")

@@ -1,4 +1,4 @@
-"""Private view of the invoking participant's current medals and personal best."""
+"""Private view of current medal holders and the participant's personal best."""
 import logging
 
 from base_queries import challenger_by_discord_id, get_current_challenge_week
@@ -7,23 +7,33 @@ from medal_roundup import describe_medal
 import medals
 
 
-def build_medal_case(held_medals, record, active_week=True):
-    lines = ["## Your Medal Case", "", "**Currently held stealable medals**"]
+def build_medal_case(held_medals, record, active_week=True, viewer_discord_id=None):
+    lines = ["## Medal Case", "", "**Currently Held**"]
     if not active_week:
         lines.append("There is no active challenge week right now.")
     elif held_medals:
-        for medal in sorted(held_medals, key=lambda row: describe_medal(row.medal_name)):
+        for medal in sorted(held_medals, key=lambda row: (
+            str(row.discord_id) != str(viewer_discord_id), describe_medal(row.medal_name)
+        )):
+            owner = f"<@{medal.discord_id}>" if medal.discord_id else medal.challenger_name
+            if medal.medal_name.startswith("highest_tier_"):
+                condition = medal.checkin_tier
+            else:
+                # Time medals compare the check-in's original local clock time.
+                condition = medal.checkin_time.strftime("%I:%M%p").lstrip("0") if medal.checkin_time else None
+            detail = f" ({condition})" if condition else ""
             lines.append(f"- {medal.medal_emoji or ''} **{describe_medal(medal.medal_name)}**")
+            lines.append(f"  - {owner}{detail}")
     else:
-        lines.append("You aren't currently holding any stealable medals.")
+        lines.append("No stealable medals are currently held.")
 
-    lines.extend(["", "**All-time personal record**"])
+    lines.extend(["", "**Your Personal Tier Record**"])
     if record is None:
         lines.append("No personal tier record yet. Submit your first check-in to set one!")
     else:
         day = record.record_date
         date_text = f"{day:%B} {day.day}, {day:%Y}"
-        lines.append(f"🏆 **Highest Ever Personal Tier: {record.tier}** — {date_text}")
+        lines.append(f"- 🏆 {record.tier} ({date_text})")
     return "\n".join(lines)
 
 
@@ -41,17 +51,16 @@ async def send_medal_case(ctx):
         week = get_current_challenge_week(challenger.tz)
         held = []
         if week is not None:
-            # Determine the current holders before filtering to this user;
-            # otherwise an old award stolen by someone else would still appear.
+            # Rank awards across all participants so stolen medals show only
+            # their current owner, including holders from earlier weeks.
             standings = medals.get_current_week_medal_standings(week.challenge_id, week.id)
             held = [
                 row for row in standings
                 if row.medal_name not in NON_STEALABLE_MEDALS
-                and str(row.discord_id) == str(ctx.author.id)
             ]
         record = medals.get_personal_tier_record(challenger.id)
         await ctx.followup.send(
-            build_medal_case(held, record, active_week=week is not None),
+            build_medal_case(held, record, active_week=week is not None, viewer_discord_id=ctx.author.id),
             ephemeral=True,
         )
     except Exception:
