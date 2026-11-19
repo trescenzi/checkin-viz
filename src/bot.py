@@ -13,6 +13,7 @@ import slash_commands.quit as quit_slash
 import slash_commands.join as join_slash
 import slash_commands.calc
 import slash_commands.bmr
+import slash_commands.medal_case
 from chart import checkin_chart, diamond_week_holders, red_week_holders, week_heat_map_from_checkins, render_chart_png
 from rule_sets import calculate_total_score
 from discord_bot import bot
@@ -108,6 +109,11 @@ async def green(ctx: discord.ApplicationContext):
     else:
         await ctx.send_response("It's not a green week")
     print(green_week)
+
+
+@bot.slash_command(name="medal-case", description="Show your current stealable medals and all-time personal tier record")
+async def medal_case_command(ctx: discord.ApplicationContext):
+    await slash_commands.medal_case.send_medal_case(ctx)
 
 
 @bot.slash_command(name="quit", description="I can't handle the challenge.")

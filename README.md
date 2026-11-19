@@ -90,9 +90,66 @@ challenge and week. Production continues to require date-active records.
 
 ## Discord Bot Commands
 
+### Personal tier records
+
+The **🏆 Highest Ever Personal Tier** medal is earned on a participant's first
+real check-in and whenever a check-in strictly exceeds their previous highest
+numeric tier across **all challenges**. Existing check-in history is the baseline;
+starting a new challenge does not reset the record. Ties and lower tiers do not
+earn it again. Automatic mulligan check-ins do not count.
+
+The medal is saved in the existing medal history and cannot be stolen. Both typed
+and calculator-submitted check-ins announce it immediately, including during the
+early-week silence window for other medals. Announcements mention the participant
+and include the new tier; when there is a previous record, they also include its
+tier and original local check-in date. If that tier was achieved more than once,
+the date it was first achieved is used. Removing a check-in with `/uncheckin`
+also removes its medal, and future comparisons use the remaining history.
+
+Examples:
+
+- `@user earned 🏆 Highest Ever Personal Tier with a T5 check-in!`
+- `@user earned 🏆 Highest Ever Personal Tier with a T12 check-in, exceeding their T9 check-in on January 2, 2025!`
+
+Two additional non-stealable 🏆 records use the same numeric-tier, first-record,
+tie, mulligan, previous-date, and historical-baseline rules:
+
+- **Highest Seasonal Personal Tier** groups challenges by the season and four-digit
+  year in their names (for example, `Summer 2026 Part 1` and `Summer 2026 Part 2`).
+  Matching is case-insensitive; `Autumn` is treated as `Fall`. Winter uses the year
+  in the challenge name, not the month/year of the check-in. A name without both a
+  recognized season and year does not award a seasonal medal; rename it correctly
+  rather than guessing a season from dates.
+- **Highest Yearly Personal Tier** groups all real check-ins by the calendar year
+  in each check-in's originally recorded timezone, independently of challenge names.
+
+Seasonal and yearly announcements include the period and follow **normal early-week
+suppression**, appearing in the opening roundup when appropriate. Only the all-time
+personal record bypasses suppression. The medal case shows the selected challenge's
+seasonal record and the participant's current local calendar-year record, including
+their first-achieved dates. With no active challenge week, the all-time and current
+year records remain available. All three records can be earned by multiple users
+independently and are retained in challenge summaries.
+
+Earliest/latest weekly and overall medals continue to be tracked in the database,
+but produce no medal reactions, earned/stolen/still-held replies, opening roundup
+entries, or challenge-summary announcements, and are hidden from `/medal-case`.
+
+No database migration or historical announcement replay is required. To run the
+PostgreSQL regression tests, set `TEST_DB_CONNECT_STRING` to a local test database
+and run `poetry run python -m unittest discover -s tests`. These tests use temporary
+tables and roll back all fixture data.
+
+### Commands
+
 The Discord bot supports a small set of slash commands to help manage challenges:
 
 - `/chart`: Display the current challenge chart as an image.
+- `/medal-case`: Privately list all current stealable medal holders for the current
+  challenge/week (excluding retired earliest/latest medals), with your own medals
+  first and each holder's tier, plus your all-time, selected-season, and current-year personal
+  tier records and the dates first achieved. The all-time record is shown between challenges, even
+  if it predates the introduction of the personal-record medal.
 - `/green`: Check whether the current week is a green week.
 - `/join`: Opt into the current challenge.
 - `/quit`: Opt out of the current challenge.
