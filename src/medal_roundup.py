@@ -1,4 +1,4 @@
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from auto_knockout import format_natural_language_list
@@ -52,8 +52,14 @@ def should_suppress_medal_announcements(week_start, now=None):
     day = challenge_day_index(week_start, now.astimezone(ROUNDUP_TZ).date())
     if day == 0:
         return True
-    if day == 1 and now_utc.time() < ROUNDUP_SILENCE_UNTIL_UTC:
-        return True
+    if day == 1:
+        roundup_day = _as_date(week_start) + timedelta(days=1)
+        cutoff = datetime.combine(
+            roundup_day,
+            ROUNDUP_SILENCE_UNTIL_UTC,
+            tzinfo=timezone.utc,
+        )
+        return now_utc < cutoff
     return False
 
 
